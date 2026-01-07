@@ -15,7 +15,7 @@ export function PhotographyTemplate({ data, id }: PhotographyTemplateProps) {
     const iso = data.exif?.iso || 'ISO 100';
     const aperture = data.exif?.aperture || 'f/2.8';
     const shutterSpeed = data.exif?.shutterSpeed || '1/125s';
-    const date = data.date || new Date().toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' }) + ' ' + new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+    const date = data.date || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) + ' ' + new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
     // Camera info
     const cameraMake = data.camera?.split(' ')[0] || 'SONY';

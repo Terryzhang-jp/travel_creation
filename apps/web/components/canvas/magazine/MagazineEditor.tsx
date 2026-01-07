@@ -350,10 +350,10 @@ export function MagazineEditor() {
           };
           addElement(newElement);
 
-          toast.success('图片已添加');
+          toast.success('Image added');
         } catch (error) {
           console.error('Failed to upload image:', error);
-          toast.error('图片上传失败');
+          toast.error('Image upload failed');
         } finally {
           setPendingUploads(prev => prev - 1);
         }
@@ -424,10 +424,10 @@ export function MagazineEditor() {
         const url = await uploadCanvasImage(projectId, resultDataUrl);
 
         updateElement(element.id, { src: url });
-        toast.success('背景已移除');
+        toast.success('Background removed');
       } catch (error) {
         console.error('Failed to upload SAM result:', error);
-        toast.error('保存失败');
+        toast.error('Save failed');
       } finally {
         setPendingUploads(prev => prev - 1);
       }
@@ -460,10 +460,10 @@ export function MagazineEditor() {
           width: dimensions.width * scale,
           height: dimensions.height * scale,
         });
-        toast.success('裁剪完成');
+        toast.success('Crop complete');
       } catch (error) {
         console.error('Failed to upload cropped image:', error);
-        toast.error('裁剪保存失败');
+        toast.error('Crop save failed');
       } finally {
         setPendingUploads(prev => prev - 1);
       }
@@ -500,10 +500,10 @@ export function MagazineEditor() {
           height: fitted.height,
           src: url,
         });
-        toast.success('AI 图片已添加');
+        toast.success('AI image added');
       } catch (error) {
         console.error('Failed to upload AI image:', error);
-        toast.error('AI 图片添加失败');
+        toast.error('AI image add failed');
       } finally {
         setPendingUploads(prev => prev - 1);
       }
@@ -693,7 +693,7 @@ export function MagazineEditor() {
                   ? "bg-indigo-500 text-white"
                   : "bg-neutral-100 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-200 hover:bg-neutral-200 dark:hover:bg-neutral-600"
               )}
-              title="从文档插入文字"
+              title="Insert text from document"
             >
               <FileText className="w-5 h-5" />
             </button>
@@ -735,7 +735,7 @@ export function MagazineEditor() {
         {/* Element Count */}
         <div className="flex items-center gap-1.5 text-sm text-neutral-600 dark:text-neutral-300">
           <span className="font-medium">{elements.length}</span>
-          <span className="text-neutral-400">个元素</span>
+          <span className="text-neutral-400">elements</span>
         </div>
 
         <div className="w-px h-4 bg-neutral-200 dark:bg-neutral-600" />
@@ -747,32 +747,32 @@ export function MagazineEditor() {
             <>
               <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />
               <span className="text-sm text-blue-600 dark:text-blue-400">
-                上传中 ({pendingUploads})
+                Uploading ({pendingUploads})
               </span>
             </>
           ) : saveStatus === 'saving' ? (
             // Saving to server
             <>
               <Loader2 className="w-4 h-4 text-amber-500 animate-spin" />
-              <span className="text-sm text-amber-600 dark:text-amber-400">保存中...</span>
+              <span className="text-sm text-amber-600 dark:text-amber-400">Saving...</span>
             </>
           ) : saveStatus === 'error' ? (
             // Save error
             <>
               <AlertCircle className="w-4 h-4 text-red-500" />
-              <span className="text-sm text-red-600 dark:text-red-400">保存失败</span>
+              <span className="text-sm text-red-600 dark:text-red-400">Save failed</span>
             </>
           ) : hasUnsavedChanges ? (
             // Has unsaved changes
             <>
               <CloudOff className="w-4 h-4 text-neutral-400" />
-              <span className="text-sm text-neutral-500">未保存</span>
+              <span className="text-sm text-neutral-500">Not saved</span>
             </>
           ) : (
             // All saved
             <>
               <Check className="w-4 h-4 text-green-500" />
-              <span className="text-sm text-green-600 dark:text-green-400">已保存</span>
+              <span className="text-sm text-green-600 dark:text-green-400">Saved</span>
             </>
           )}
         </div>
@@ -900,10 +900,10 @@ export function MagazineEditor() {
                 height: fitted.height,
                 src: url,
               });
-              toast.success('AI 图片已添加');
+              toast.success('AI image added');
             } catch (error) {
               console.error('Failed to upload AI image:', error);
-              toast.error('AI 图片添加失败');
+              toast.error('AI image add failed');
             } finally {
               setPendingUploads(prev => prev - 1);
             }
@@ -919,10 +919,10 @@ export function MagazineEditor() {
             try {
               const url = await uploadCanvasImage(projectId, newSrc);
               updateElement(selected.id, { src: url });
-              toast.success('编辑已保存');
+              toast.success('Edit saved');
             } catch (error) {
               console.error('Failed to upload edited image:', error);
-              toast.error('保存失败');
+              toast.error('Save failed');
             } finally {
               setPendingUploads(prev => prev - 1);
             }

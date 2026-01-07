@@ -46,7 +46,7 @@ export function TravelDiaryTemplate({ data, id }: TravelDiaryTemplateProps) {
                 <div className="relative h-full rounded-[40px] overflow-hidden border-[10px] border-white shadow-2xl">
                   <img
                     src={data.photoUrl}
-                    alt={data.title || '海报'}
+                    alt={data.title || 'Poster'}
                     className="w-full h-full object-cover"
                     crossOrigin="anonymous"
                   />

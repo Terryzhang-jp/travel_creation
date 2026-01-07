@@ -14,17 +14,17 @@ export function VintageTemplate({ data, id }: VintageTemplateProps) {
   const timeline = [
     {
       title: 'Chapter 01 · Departure',
-      content: data.location || '坐标待定，心之所向。',
+      content: data.location || 'Destination pending, following my heart.',
     },
     {
       title: 'Chapter 02 · Field Notes',
       content:
         data.description ||
-        '路上收集的所有风声与气味，写进翻动的日记里。',
+        'All the wind and scents collected on the road, written in a turning diary.',
     },
     {
       title: 'Chapter 03 · Arrival',
-      content: data.date || '在抵达之前，时间只是背景声。',
+      content: data.date || 'Before arrival, time is just background noise.',
     },
   ];
 
@@ -48,7 +48,7 @@ export function VintageTemplate({ data, id }: VintageTemplateProps) {
         <div className="relative bg-white rounded-[40px] overflow-hidden shadow-[0_40px_80px_-50px_rgba(15,23,42,0.6)]">
           <img
             src={data.photoUrl}
-            alt={data.title || '海报'}
+            alt={data.title || 'Poster'}
             className="w-full h-full object-cover"
             crossOrigin="anonymous"
           />

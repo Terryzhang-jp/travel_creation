@@ -63,7 +63,7 @@ export function ModernTemplate({ data, id }: ModernTemplateProps) {
         <div className="relative rounded-[56px] overflow-hidden h-[960px] shadow-[0_50px_100px_-60px_rgba(15,23,42,0.8)]">
           <img
             src={data.photoUrl}
-            alt={data.title || '海报'}
+            alt={data.title || 'Poster'}
             className="w-full h-full object-cover"
             crossOrigin="anonymous"
           />

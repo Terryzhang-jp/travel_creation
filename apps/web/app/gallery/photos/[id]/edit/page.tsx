@@ -14,7 +14,7 @@ const PhotoEditor = dynamic(
       <div className="flex items-center justify-center h-screen bg-white">
         <div className="flex flex-col items-center gap-4">
           <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
-          <p className="text-sm text-gray-600 font-medium">加载编辑器...</p>
+          <p className="text-sm text-gray-600 font-medium">Loading editor...</p>
         </div>
       </div>
     ),
@@ -52,7 +52,7 @@ export default function PhotoEditPage({ params }: PageProps) {
         console.log(`[PhotoEditPage] Using optimized image URL for editing`);
       } catch (err) {
         console.error("Failed to load photo:", err);
-        setError("无法加载照片");
+        setError("Unable to load photo");
       } finally {
         setIsLoading(false);
       }
@@ -97,7 +97,7 @@ export default function PhotoEditPage({ params }: PageProps) {
       <div className="flex items-center justify-center h-screen bg-white">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-          <p className="text-sm text-gray-600">加载照片...</p>
+          <p className="text-sm text-gray-600">Loading photo...</p>
         </div>
       </div>
     );
@@ -107,12 +107,12 @@ export default function PhotoEditPage({ params }: PageProps) {
     return (
       <div className="flex items-center justify-center h-screen bg-white">
         <div className="flex flex-col items-center gap-4">
-          <p className="text-red-600">{error || "照片不存在"}</p>
+          <p className="text-red-600">{error || "Photo not found"}</p>
           <button
             onClick={() => router.back()}
             className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
           >
-            返回
+            Back
           </button>
         </div>
       </div>

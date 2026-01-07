@@ -50,7 +50,7 @@ export function MinimalTemplate({ data, id }: MinimalTemplateProps) {
           <div className="relative h-[520px] rounded-[32px] overflow-hidden">
             <img
               src={data.photoUrl}
-              alt={data.title || '海报'}
+              alt={data.title || 'Poster'}
               className="w-full h-full object-cover"
               crossOrigin="anonymous"
             />

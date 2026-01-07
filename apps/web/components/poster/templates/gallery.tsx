@@ -61,7 +61,7 @@ export function GalleryTemplate({ data, id }: GalleryTemplateProps) {
               <div className="absolute inset-10 rounded-[48px] overflow-hidden shadow-2xl">
                 <img
                   src={data.photoUrl}
-                  alt={data.title || '海报'}
+                  alt={data.title || 'Poster'}
                   className="w-full h-full object-cover"
                   crossOrigin="anonymous"
                 />

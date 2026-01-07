@@ -132,7 +132,7 @@ function TextPropertiesToolbarComponent({
             value={targetElement.fill || "#333333"}
             onChange={(e) => handleColorChange(e.target.value)}
             className="w-6 h-6 rounded cursor-pointer border border-gray-300 bg-transparent"
-            title="文字颜色"
+            title="Text color"
             onMouseDown={(e) => e.stopPropagation()}
           />
         </div>

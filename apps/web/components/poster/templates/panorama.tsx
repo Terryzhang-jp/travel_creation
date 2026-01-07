@@ -27,7 +27,7 @@ export function PanoramaTemplate({ data, id }: PanoramaTemplateProps) {
         <div className="relative w-full h-[760px] rounded-[48px] overflow-hidden border border-white/10">
           <img
             src={data.photoUrl}
-            alt={data.title || '海报'}
+            alt={data.title || 'Poster'}
             className="w-full h-full object-cover"
             crossOrigin="anonymous"
           />

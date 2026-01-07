@@ -30,7 +30,7 @@ export function FilmTemplate({ data, id }: FilmTemplateProps) {
           <div className="relative bg-slate-900 rounded-[40px] overflow-hidden">
             <img
               src={data.photoUrl}
-              alt={data.title || '海报'}
+              alt={data.title || 'Poster'}
               className="w-full h-full object-cover opacity-90"
               crossOrigin="anonymous"
             />
@@ -48,7 +48,7 @@ export function FilmTemplate({ data, id }: FilmTemplateProps) {
                 >
                   <img
                     src={data.photoUrl}
-                    alt={`${data.title || '海报'}-${idx}`}
+                    alt={`${data.title || 'Poster'}-${idx}`}
                     className="w-full h-full object-cover"
                     style={{ objectPosition: pos }}
                     crossOrigin="anonymous"
@@ -91,7 +91,7 @@ export function FilmTemplate({ data, id }: FilmTemplateProps) {
                   >
                     <img
                       src={data.photoUrl}
-                      alt={`${data.title || '海报'}-contact-${idx}`}
+                      alt={`${data.title || 'Poster'}-contact-${idx}`}
                       className="w-full h-full object-cover"
                       style={{ objectPosition: cropPositions[idx % cropPositions.length] }}
                       crossOrigin="anonymous"

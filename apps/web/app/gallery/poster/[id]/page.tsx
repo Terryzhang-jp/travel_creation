@@ -56,7 +56,7 @@ export default function PosterGeneratorPage({ params }: PageProps) {
         }
       } catch (err) {
         console.error('Failed to load data:', err);
-        setError('无法加载照片数据');
+        setError('Unable to load photo data');
       } finally {
         setIsLoading(false);
       }
@@ -75,7 +75,7 @@ export default function PosterGeneratorPage({ params }: PageProps) {
         description: jsonContentToText(photo.description),
         location: location?.name,
         date: photo.metadata.dateTime
-          ? new Date(photo.metadata.dateTime).toLocaleDateString('zh-CN', {
+          ? new Date(photo.metadata.dateTime).toLocaleDateString('en-US', {
               year: 'numeric',
               month: 'long',
               day: 'numeric',
@@ -96,7 +96,7 @@ export default function PosterGeneratorPage({ params }: PageProps) {
 
   const handleDownloadSelected = async () => {
     if (selectedTemplates.length === 0) {
-      alert('请至少选择一个模板');
+      alert('Please select at least one template');
       return;
     }
 
@@ -139,7 +139,7 @@ export default function PosterGeneratorPage({ params }: PageProps) {
       setGeneratingTemplate(null);
 
       if (files.length === 0) {
-        throw new Error('未能生成任何海报');
+        throw new Error('Failed to generate any poster');
       }
 
       // Download
@@ -151,7 +151,7 @@ export default function PosterGeneratorPage({ params }: PageProps) {
       }
     } catch (err) {
       console.error('Download failed:', err);
-      alert('下载失败，请重试');
+      alert('Download failed, please try again');
     } finally {
       setIsGenerating(false);
     }
@@ -162,7 +162,7 @@ export default function PosterGeneratorPage({ params }: PageProps) {
       <div className="flex items-center justify-center min-h-screen bg-background">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">加载照片数据...</p>
+          <p className="text-sm text-muted-foreground">Loading photo data...</p>
         </div>
       </div>
     );
@@ -172,12 +172,12 @@ export default function PosterGeneratorPage({ params }: PageProps) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
         <div className="flex flex-col items-center gap-4">
-          <p className="text-red-600">{error || '照片不存在'}</p>
+          <p className="text-red-600">{error || 'Photo not found'}</p>
           <button
             onClick={() => router.back()}
             className="px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
           >
-            返回
+            Back
           </button>
         </div>
       </div>
@@ -199,9 +199,9 @@ export default function PosterGeneratorPage({ params }: PageProps) {
                 <ArrowLeft className="w-5 h-5" />
               </button>
               <div>
-                <h1 className="text-2xl font-bold text-foreground tracking-tight">生成海报</h1>
+                <h1 className="text-2xl font-bold text-foreground tracking-tight">Generate Poster</h1>
                 <p className="text-sm text-muted-foreground mt-0.5">
-                  {photo.title || '未命名照片'}
+                  {photo.title || 'Untitled photo'}
                 </p>
               </div>
             </div>
@@ -218,7 +218,7 @@ export default function PosterGeneratorPage({ params }: PageProps) {
                   }`}
                 >
                   <Layers className="w-4 h-4" />
-                  <span>滑动</span>
+                  <span>Swipe</span>
                 </button>
                 <button
                   onClick={() => setViewMode('grid')}
@@ -229,7 +229,7 @@ export default function PosterGeneratorPage({ params }: PageProps) {
                   }`}
                 >
                   <Grid3x3 className="w-4 h-4" />
-                  <span>网格</span>
+                  <span>Grid</span>
                 </button>
               </div>
 
@@ -243,13 +243,13 @@ export default function PosterGeneratorPage({ params }: PageProps) {
                   {isGenerating ? (
                     <>
                       <Loader2 className="w-5 h-5 animate-spin" />
-                      <span>生成中...</span>
+                      <span>Generating...</span>
                     </>
                   ) : (
                     <>
                       <Download className="w-5 h-5" />
                       <span>
-                        下载选中 ({selectedTemplates.length})
+                        Download selected ({selectedTemplates.length})
                       </span>
                     </>
                   )}
@@ -264,7 +264,7 @@ export default function PosterGeneratorPage({ params }: PageProps) {
               <div className="flex items-center gap-3">
                 <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
                 <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
-                  正在生成: <span className="font-bold">{generatingTemplate}</span>
+                  Generating: <span className="font-bold">{generatingTemplate}</span>
                 </p>
               </div>
             </div>
@@ -279,7 +279,7 @@ export default function PosterGeneratorPage({ params }: PageProps) {
           <div className="aspect-video relative bg-gradient-to-br from-muted/50 to-muted">
             <img
               src={photo.fileUrl}
-              alt={photo.title || '照片'}
+              alt={photo.title || 'Photo'}
               className="w-full h-full object-contain"
             />
             {/* 照片装饰遮罩 */}
@@ -289,32 +289,32 @@ export default function PosterGeneratorPage({ params }: PageProps) {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-sm">
               {posterData.title && (
                 <div className="space-y-2">
-                  <div className="text-muted-foreground text-xs font-medium uppercase tracking-wide">标题</div>
+                  <div className="text-muted-foreground text-xs font-medium uppercase tracking-wide">Title</div>
                   <div className="font-semibold text-foreground text-base">{posterData.title}</div>
                 </div>
               )}
               {posterData.location && (
                 <div className="space-y-2">
-                  <div className="text-muted-foreground text-xs font-medium uppercase tracking-wide">地点</div>
+                  <div className="text-muted-foreground text-xs font-medium uppercase tracking-wide">Location</div>
                   <div className="font-semibold text-foreground text-base">{posterData.location}</div>
                 </div>
               )}
               {posterData.date && (
                 <div className="space-y-2">
-                  <div className="text-muted-foreground text-xs font-medium uppercase tracking-wide">日期</div>
+                  <div className="text-muted-foreground text-xs font-medium uppercase tracking-wide">Date</div>
                   <div className="font-semibold text-foreground text-base">{posterData.date}</div>
                 </div>
               )}
               {posterData.camera && (
                 <div className="space-y-2">
-                  <div className="text-muted-foreground text-xs font-medium uppercase tracking-wide">相机</div>
+                  <div className="text-muted-foreground text-xs font-medium uppercase tracking-wide">Camera</div>
                   <div className="font-semibold text-foreground text-base">{posterData.camera}</div>
                 </div>
               )}
             </div>
             {posterData.description && (
               <div className="mt-6 pt-6 border-t border-border/50">
-                <div className="text-muted-foreground text-xs font-medium uppercase tracking-wide mb-3">描述</div>
+                <div className="text-muted-foreground text-xs font-medium uppercase tracking-wide mb-3">Description</div>
                 <p className="text-foreground text-base leading-relaxed line-clamp-3 font-light">
                   {posterData.description}
                 </p>
@@ -329,8 +329,8 @@ export default function PosterGeneratorPage({ params }: PageProps) {
             posterData={posterData}
             onTemplateClick={(templateId) => {
               // TODO: 进入编辑页面
-              console.log('点击编辑模板:', templateId);
-              alert(`即将进入 ${templateId} 模板的编辑页面\n\n（编辑功能开发中...）`);
+              console.log('Clicked edit template:', templateId);
+              alert(`Entering ${templateId} template edit page\n\n(Edit feature in development...)`);
             }}
           />
         ) : (

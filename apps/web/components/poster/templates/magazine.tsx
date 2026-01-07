@@ -30,7 +30,7 @@ export function MagazineTemplate({ data, id }: MagazineTemplateProps) {
         <div className="relative overflow-hidden rounded-r-[80px]">
           <img
             src={data.photoUrl}
-            alt={data.title || '海报'}
+            alt={data.title || 'Poster'}
             className="w-full h-full object-cover"
             crossOrigin="anonymous"
           />
