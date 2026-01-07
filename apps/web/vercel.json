@@ -1,0 +1,16 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "cd ../.. && pnpm turbo build --filter=novel-next-app && cp -r apps/web/.next .next",
+  "installCommand": "cd ../.. && pnpm install",
+  "outputDirectory": ".next",
+  "rewrites": [
+    {
+      "source": "/docs",
+      "destination": "https://novel.mintlify.dev/docs"
+    },
+    {
+      "source": "/docs/:match*",
+      "destination": "https://novel.mintlify.dev/docs/:match*"
+    }
+  ]
+}

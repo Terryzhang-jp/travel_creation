@@ -1,0 +1,615 @@
+import type { JSONContent } from "novel";
+
+export type { JSONContent };
+
+/**
+ * 用户数据模型
+ */
+export interface User {
+  id: string; // UUID
+  email: string; // 邮箱（唯一）
+  passwordHash: string; // bcrypt 哈希
+  name?: string; // 用户名（可选）
+  requirePasswordChange: boolean; // 是否需要修改密码（初次登录时为true）
+  securityQuestion?: string; // 安全问题（用于密码找回）
+  securityAnswerHash?: string; // 安全问题答案 bcrypt 哈希
+  createdAt: string; // ISO 8601 时间戳
+  updatedAt: string;
+}
+
+/**
+ * 安全问题选项
+ */
+export const SECURITY_QUESTIONS = [
+  "What is your mother's maiden name?",
+  "What was the name of your first pet?",
+  "What city were you born in?",
+  "What is your favorite movie?",
+  "What was the name of your elementary school?",
+  "What is your favorite food?",
+] as const;
+
+export type SecurityQuestion = (typeof SECURITY_QUESTIONS)[number];
+
+/**
+ * 文档数据模型
+ */
+export interface Document {
+  id: string; // UUID
+  userId: string; // 所属用户ID
+  tripId?: string; // 所属旅行ID（可选）
+  title: string; // 文档标题
+  content: JSONContent; // Tiptap JSON 内容（包含所有格式）
+  images: string[]; // 关联的图片文件名列表
+  tags?: string[]; // 标签（可选）
+  preview?: string; // 预览文本（前100字）
+  createdAt: string; // ISO 8601
+  updatedAt: string;
+}
+
+/**
+ * 文档索引（用于快速查询）
+ */
+export interface DocumentIndex {
+  id: string;
+  title: string;
+  preview: string;
+  tags: string[];
+  updatedAt: string;
+}
+
+/**
+ * JWT Payload
+ */
+export interface JWTPayload {
+  userId: string;
+  email: string;
+  requirePasswordChange?: boolean; // 是否需要修改密码（用于中间件重定向）
+}
+
+/**
+ * API 错误响应
+ */
+export interface APIError {
+  error: string;
+  code: string;
+}
+
+/**
+ * 照片分类类型
+ */
+export type PhotoCategory =
+  | "time-location" // 有时间 + 有地点
+  | "time-only" // 有时间 + 无地点
+  | "location-only" // 无时间 + 有地点
+  | "neither"; // 无时间 + 无地点
+
+/**
+ * 地点来源类型
+ */
+export type LocationSource =
+  | "exif" // 来自照片EXIF数据
+  | "manual" // 用户手动输入
+  | "location-library"; // 来自地点库
+
+/**
+ * 照片数据模型
+ */
+export interface Photo {
+  id: string; // UUID
+  userId: string; // 所属用户ID
+  tripId?: string; // 所属旅行ID（可选）
+  fileName: string; // 存储的文件名
+  originalName: string; // 原始文件名
+  fileUrl: string; // Supabase Storage 公开 URL
+  thumbnailUrl?: string; // 缩略图 URL (300x300)
+
+  // 地点库关联（优先级高于EXIF）
+  locationId?: string; // 关联的地点库ID
+
+  // EXIF 元数据
+  metadata: {
+    dateTime?: string; // 拍摄时间 (ISO 8601)
+    location?: {
+      latitude: number; // 纬度
+      longitude: number; // 经度
+      altitude?: number; // 海拔（米）
+      source?: LocationSource; // 地点来源（新增字段）
+    };
+    camera?: {
+      make?: string; // 相机制造商
+      model?: string; // 相机型号
+    };
+    dimensions?: {
+      width: number; // 宽度（像素）
+      height: number; // 高度（像素）
+    };
+    fileSize: number; // 文件大小（字节）
+    mimeType: string; // MIME 类型
+  };
+
+  // 自动分类
+  category: PhotoCategory;
+
+  // 可选字段
+  title?: string; // 自定义标题
+  description?: JSONContent; // 描述（Novel编辑器格式）
+  tags?: string[]; // 标签
+
+  // 公开设置
+  isPublic?: boolean; // 是否公开（默认 true）- 用于公共地图展示
+
+  // 回收站状态
+  trashed?: boolean; // 是否在回收站（默认 false）
+  trashedAt?: string; // 移入回收站的时间 (ISO 8601)
+
+  // 编辑状态
+  originalFileUrl?: string; // 原始照片URL（编辑前），null表示从未编辑
+  edited?: boolean; // 是否已编辑（默认 false）
+  editedAt?: string; // 最后编辑时间 (ISO 8601)
+
+  // 时间戳
+  createdAt: string; // 上传时间 (ISO 8601)
+  updatedAt: string; // 更新时间
+}
+
+/**
+ * 照片索引（用于快速查询）
+ */
+export interface PhotoIndex {
+  id: string;
+  fileName: string;
+  category: PhotoCategory;
+  dateTime?: string; // 用于排序
+  location?: {
+    latitude: number;
+    longitude: number;
+  };
+  updatedAt: string;
+}
+
+/**
+ * 照片统计
+ */
+export interface PhotoStats {
+  total: number;
+  byCategory: {
+    "time-location": number;
+    "time-only": number;
+    "location-only": number;
+    neither: number;
+  };
+}
+
+/**
+ * 地点数据模型
+ */
+export interface Location {
+  id: string; // UUID
+  userId: string; // 所属用户ID
+  name: string; // 用户自定义名称（如"家"、"埃菲尔铁塔"）
+
+  // 坐标（必需）
+  coordinates: {
+    latitude: number; // 纬度
+    longitude: number; // 经度
+  };
+
+  // 地址信息（可选，来自反向地理编码）
+  address?: {
+    formattedAddress: string; // 完整地址
+    country?: string; // 国家
+    state?: string; // 州/省
+    city?: string; // 城市
+    postalCode?: string; // 邮编
+  };
+
+  // 可选元数据
+  placeId?: string; // Google Place ID（如果可用）
+  category?: string; // 用户自定义分类
+  notes?: string; // 备注
+
+  // 使用追踪
+  usageCount: number; // 被多少张照片使用
+  lastUsedAt?: string; // 最后使用时间 (ISO 8601)
+
+  // 公开设置
+  isPublic: boolean; // 是否公开（默认 false）- 公开的地点所有用户可见
+
+  // 时间戳
+  createdAt: string; // ISO 8601
+  updatedAt: string;
+}
+
+/**
+ * 地点索引（用于快速查询）
+ */
+export interface LocationIndex {
+  id: string;
+  name: string;
+  coordinates: {
+    latitude: number;
+    longitude: number;
+  };
+  formattedAddress?: string;
+  usageCount: number;
+  lastUsedAt?: string;
+  isPublic: boolean; // 是否公开
+  userId: string; // 所属用户ID（用于区分公共地点和私有地点）
+  updatedAt: string;
+}
+
+/**
+ * AI Magic 生成步骤
+ */
+export type AiMagicStep = "input" | "optimize" | "generate" | "result";
+
+/**
+ * AI Magic 历史记录项
+ */
+export interface AiMagicHistoryItem {
+  id: string; // UUID
+  userId: string; // 用户 ID
+
+  // 用户输入
+  userPrompt: string; // 用户原始描述
+  inputImageCount: number; // 输入图片数量
+  styleImageCount: number; // 风格参考图数量
+
+  // 优化结果
+  optimizedPrompt: string; // 优化后的 prompt
+  reasoning?: string; // AI 推理说明
+
+  // 输出
+  resultImage: string; // 生成的图片 (base64 data URL)
+
+  // 元数据
+  model: string; // 使用的模型
+  createdAt: string; // ISO 8601
+}
+
+/**
+ * AI Magic 历史记录索引（用于快速查询）
+ */
+export interface AiMagicHistoryIndex {
+  id: string;
+  userPrompt: string; // 截断的用户描述
+  resultImageThumbnail?: string; // 缩略图 (可选)
+  createdAt: string;
+}
+
+/**
+ * AI Magic Optimize API 请求
+ */
+export interface AiMagicOptimizeRequest {
+  userPrompt: string; // 用户描述
+  inputImages?: string[]; // 输入图片 base64 数组
+  styleImages?: string[]; // 风格参考图 base64 数组
+}
+
+/**
+ * AI Magic Optimize API 响应
+ */
+export interface AiMagicOptimizeResponse {
+  optimizedPrompt: string; // 优化后的 prompt
+  reasoning: string; // 推理过程说明
+  suggestions?: string[]; // 可选建议
+}
+
+/**
+ * AI Magic Generate API 请求
+ */
+export interface AiMagicGenerateRequest {
+  prompt: string; // 用户确认的 prompt
+  inputImages?: string[]; // 输入图片 base64 数组
+  styleImages?: string[]; // 风格参考图 base64 数组
+  userPrompt: string; // 原始用户描述（用于历史记录）
+  reasoning?: string; // 推理说明（用于历史记录）
+}
+
+/**
+ * AI Magic Generate API 响应
+ */
+export interface AiMagicGenerateResponse {
+  image: string; // 生成的图片 base64
+  mimeType: string; // MIME 类型
+  historyId: string; // 历史记录 ID
+}
+
+// ============================================
+// Canvas/Journal 画布相关类型 - 无限画布版本
+// ============================================
+
+/**
+ * Canvas 工具类型
+ */
+export type CanvasToolType = "select" | "pan";
+
+/**
+ * Canvas 元素类型
+ */
+export type CanvasElementType = "text" | "image" | "sticker";
+
+/**
+ * 视口状态（用于无限画布的平移和缩放）
+ */
+export interface CanvasViewport {
+  x: number; // 视口偏移 X 坐标
+  y: number; // 视口偏移 Y 坐标
+  zoom: number; // 缩放比例 (0.1 - 5)
+}
+
+/**
+ * Canvas 元素（无限画布版本）
+ * 所有元素使用全局坐标系
+ */
+export interface CanvasElement {
+  id: string; // 唯一标识
+  type: CanvasElementType; // 元素类型
+  x: number; // 全局 X 坐标
+  y: number; // 全局 Y 坐标
+  width?: number; // 宽度
+  height?: number; // 高度
+  rotation?: number; // 旋转角度（度）
+  opacity?: number; // 透明度 (0-1)
+
+  // 文本元素属性
+  text?: string; // 纯文本内容
+  html?: string; // HTML 内容（富文本）
+  fontSize?: number; // 字体大小
+  fontFamily?: string; // 字体
+  fill?: string; // 颜色
+
+  // 图片元素属性
+  src?: string; // 图片 URL（Supabase Storage URL）
+  originalSrc?: string; // 原始 base64（上传前临时使用）
+}
+
+/**
+ * 文本编辑状态
+ */
+export interface TextEditingState {
+  id: string;
+  initialHtml: string;
+  x: number; // 屏幕坐标 X
+  y: number; // 屏幕坐标 Y
+  width: number; // 缩放后的宽度
+  height: number; // 缩放后的高度
+  zoom: number; // 当前缩放比例
+  style: {
+    fontSize: number; // 原始字体大小（未缩放）
+    fontFamily: string;
+    fill: string;
+  };
+}
+
+/**
+ * Canvas 配置常量
+ */
+export const CANVAS_CONFIG = {
+  MIN_ZOOM: 0.1,
+  MAX_ZOOM: 5,
+  ZOOM_STEP: 0.1,
+  GRID_SIZE: 50,
+  VIRTUAL_SIZE: 10000,
+  SAVE_DEBOUNCE_MS: 1500,
+  VIEWPORT_SAVE_DEBOUNCE_MS: 3000,
+  MAX_IMAGE_WIDTH: 400,
+  TOOLBAR_HIDE_DELAY_MS: 3000,
+  // 数据限制
+  MAX_ELEMENTS: 500, // 最大元素数量
+  MAX_PAYLOAD_SIZE_MB: 10, // 最大请求体大小 (MB)
+  MAX_IMAGE_SIZE_MB: 5, // 单张图片最大大小 (MB)
+  WARNING_ELEMENTS_THRESHOLD: 400, // 元素数量警告阈值
+} as const;
+
+/**
+ * A4 页面配置（杂志模式）
+ * A4 纸张比例: 210mm x 297mm ≈ 1:1.414
+ */
+export const A4_CONFIG = {
+  WIDTH_MM: 210,
+  HEIGHT_MM: 297,
+  ASPECT_RATIO: 210 / 297, // ~0.707
+  // 预览模式单页尺寸（用于双页展开视图）
+  PREVIEW_WIDTH: 360,
+  PREVIEW_HEIGHT: 509,
+  // 编辑模式页面尺寸
+  EDIT_WIDTH: 800,
+  EDIT_HEIGHT: 1132,
+} as const;
+
+/**
+ * 杂志页面
+ * 每个页面包含独立的元素数组，元素坐标相对于页面 (0,0 = 页面左上角)
+ */
+export interface MagazinePage {
+  id: string; // UUID
+  index: number; // 页面顺序 (0 = 封面)
+  elements: CanvasElement[]; // 页面内的元素（坐标相对于页面）
+}
+
+/**
+ * 杂志视图模式
+ */
+export type MagazineViewMode = "preview" | "edit";
+
+/**
+ * Canvas 字体列表 (使用 Fontsource 本地字体)
+ */
+export const JOURNAL_FONTS = [
+  // 中文字体
+  "ZCOOL XiaoWei",      // 文艺衬线
+  "ZCOOL KuaiLe",       // 可爱活泼
+  "Liu Jian Mao Cao",   // 毛笔草书
+  "Noto Sans SC",       // 思源黑体
+  "Noto Serif SC",      // 思源宋体
+  "Ma Shan Zheng",      // 楷书
+  // 日语字体
+  "Noto Sans JP",       // 思源黑体日文
+  "Noto Serif JP",      // 思源明朝
+  "Zen Maru Gothic",    // 圆体
+  // 英文字体
+  "Playfair Display",   // 优雅衬线
+  "Dancing Script",     // 手写体
+] as const;
+
+export type JournalFont = (typeof JOURNAL_FONTS)[number];
+
+/**
+ * Canvas 项目（支持无限画布和杂志模式）
+ */
+export interface CanvasProject {
+  id: string; // UUID
+  userId: string; // 所属用户 ID
+  title: string; // 项目标题
+
+  // 无限画布数据（isMagazineMode = false 时使用）
+  viewport: CanvasViewport; // 视口状态
+  elements: CanvasElement[]; // 所有元素（全局坐标）
+
+  // 杂志模式数据（isMagazineMode = true 时使用）
+  isMagazineMode?: boolean; // 是否为杂志模式（默认 false = 无限画布）
+  pages?: MagazinePage[]; // 杂志页面数组
+  currentPageIndex?: number; // 当前编辑的页面索引
+
+  // 缩略图
+  thumbnailUrl?: string; // 缩略图 URL
+
+  // 版本控制
+  version: number; // 乐观锁版本号，每次保存递增
+
+  // 时间戳
+  createdAt: string; // ISO 8601
+  updatedAt: string;
+}
+
+/**
+ * Canvas 项目索引（用于列表展示）
+ */
+export interface CanvasProjectIndex {
+  id: string;
+  title: string;
+  thumbnailUrl?: string;
+  elementCount: number; // 元素数量（替代 pageCount）
+  updatedAt: string;
+}
+
+/**
+ * Canvas API 请求：保存项目
+ */
+export interface CanvasSaveRequest {
+  title?: string;
+  viewport?: CanvasViewport;
+  elements?: CanvasElement[];
+  expectedVersion?: number; // 乐观锁：客户端期望的版本号
+}
+
+/**
+ * 版本冲突错误
+ */
+export class VersionConflictError extends Error {
+  readonly serverVersion: number;
+  readonly clientVersion: number;
+
+  constructor(serverVersion: number, clientVersion: number) {
+    super(`Version conflict: server has v${serverVersion}, client expected v${clientVersion}`);
+    this.name = "VersionConflictError";
+    this.serverVersion = serverVersion;
+    this.clientVersion = clientVersion;
+  }
+}
+
+/**
+ * Canvas API 响应：项目详情
+ */
+export interface CanvasProjectResponse {
+  project: CanvasProject;
+}
+
+/**
+ * Canvas API 响应：项目列表
+ */
+export interface CanvasProjectListResponse {
+  projects: CanvasProjectIndex[];
+}
+
+// ============================================
+// Trip 旅行相关类型
+// ============================================
+
+/**
+ * 旅行数据模型
+ * 作为照片、文档、画布的容器，支持多次旅行管理
+ */
+export interface Trip {
+  id: string; // UUID
+  userId: string; // 所属用户ID
+
+  // 基本信息
+  name: string; // 旅行名称（如 "2024 东京之旅"）
+  description?: string; // 旅行描述
+  coverImageUrl?: string; // 封面图 URL
+
+  // 时间范围
+  startDate?: string; // 开始日期 (ISO 8601)
+  endDate?: string; // 结束日期 (ISO 8601)
+
+  // 地理信息
+  defaultCenter?: {
+    latitude: number; // 默认地图中心纬度
+    longitude: number; // 默认地图中心经度
+  };
+
+  // 分享设置
+  isPublic: boolean; // 是否公开（默认 false）
+  shareSlug?: string; // 公开链接 slug（如 "tokyo-2024"）
+
+  // 统计信息（缓存）
+  photoCount: number; // 照片数量
+  documentCount: number; // 文档数量
+
+  // 时间戳
+  createdAt: string; // ISO 8601
+  updatedAt: string;
+}
+
+/**
+ * 旅行索引（用于列表展示）
+ */
+export interface TripIndex {
+  id: string;
+  name: string;
+  description?: string;
+  coverImageUrl?: string;
+  startDate?: string;
+  endDate?: string;
+  isPublic: boolean;
+  photoCount: number;
+  documentCount: number;
+  updatedAt: string;
+}
+
+/**
+ * 创建旅行请求
+ */
+export interface CreateTripRequest {
+  name: string;
+  description?: string;
+  startDate?: string;
+  endDate?: string;
+  isPublic?: boolean;
+}
+
+/**
+ * 更新旅行请求
+ */
+export interface UpdateTripRequest {
+  name?: string;
+  description?: string;
+  coverImageUrl?: string;
+  startDate?: string;
+  endDate?: string;
+  isPublic?: boolean;
+  shareSlug?: string;
+}
