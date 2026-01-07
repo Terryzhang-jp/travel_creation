@@ -47,7 +47,7 @@ export function StoryTemplate({ data, id }: StoryTemplateProps) {
         <div className="relative flex-1 rounded-[60px] overflow-hidden shadow-[0_80px_120px_-80px_rgba(0,0,0,0.9)]">
           <img
             src={data.photoUrl}
-            alt={data.title || '海报'}
+            alt={data.title || 'Poster'}
             className="w-full h-full object-cover"
             crossOrigin="anonymous"
           />
