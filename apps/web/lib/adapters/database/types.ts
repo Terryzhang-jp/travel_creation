@@ -180,6 +180,7 @@ export interface UpdateTripInput {
 export interface CreateCanvasInput {
   id?: string;
   userId: string;
+  tripId?: string;
   title: string;
   viewport?: CanvasViewport;
   elements?: CanvasElement[];
@@ -190,6 +191,7 @@ export interface CreateCanvasInput {
 }
 
 export interface UpdateCanvasInput {
+  tripId?: string;
   title?: string;
   viewport?: CanvasViewport;
   elements?: CanvasElement[];
@@ -324,6 +326,7 @@ export interface DatabaseAdapter {
     create(data: CreateCanvasInput): Promise<CanvasProject>;
     findById(id: string): Promise<CanvasProject | null>;
     findByUserId(userId: string, options?: QueryOptions): Promise<CanvasProject[]>;
+    findByTripId(tripId: string, options?: QueryOptions): Promise<CanvasProject[]>;
     findDefault(userId: string): Promise<CanvasProject | null>;
     update(id: string, data: UpdateCanvasInput): Promise<CanvasProject>;
     delete(id: string): Promise<void>;

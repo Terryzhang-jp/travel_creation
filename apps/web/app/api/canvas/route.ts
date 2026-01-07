@@ -8,6 +8,7 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth/session";
 import { canvasStorage } from "@/lib/storage/canvas-storage";
+import { ensureDatabaseReady } from "@/lib/adapters/database";
 import type { CanvasSaveRequest } from "@/types/storage";
 
 /**
@@ -18,6 +19,9 @@ export async function GET(req: Request) {
   try {
     const session = await requireAuth(req);
     const userId = session.userId;
+
+    // Ensure database is initialized before querying
+    await ensureDatabaseReady();
 
     const projects = await canvasStorage.findByUserId(userId);
 
@@ -39,6 +43,9 @@ export async function POST(req: Request) {
   try {
     const session = await requireAuth(req);
     const userId = session.userId;
+
+    // Ensure database is initialized before creating
+    await ensureDatabaseReady();
 
     const body: CanvasSaveRequest = await req.json();
 

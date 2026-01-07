@@ -23,11 +23,14 @@ import {
   MapPin,
   Plus,
   Map,
+  X,
 } from 'lucide-react';
 import { Button } from '@/components/tailwind/ui/button';
 import { AppLayout } from '@/components/layout/app-layout';
 import { PhotoMap } from '@/components/maps/photo-map';
 import { LocationPhotosModal } from '@/components/photos/location-photos-modal';
+import { AddPhotosModal } from '@/components/trips/add-photos-modal';
+import { AddDocumentsModal } from '@/components/trips/add-documents-modal';
 import type { Trip, Photo, Document } from '@/types/storage';
 import type { PhotoLocation } from '@/components/maps/photo-map';
 
@@ -44,6 +47,8 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
   const [deleting, setDeleting] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<PhotoLocation | null>(null);
   const [activeTab, setActiveTab] = useState<'photos' | 'documents' | 'map'>('photos');
+  const [showAddPhotosModal, setShowAddPhotosModal] = useState(false);
+  const [showAddDocumentsModal, setShowAddDocumentsModal] = useState(false);
 
   useEffect(() => {
     fetchTrip();
@@ -98,6 +103,48 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
       alert('Failed to delete trip');
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const handleRemovePhoto = async (photoId: string) => {
+    if (!confirm('Remove this photo from the trip?')) return;
+
+    try {
+      const response = await fetch(`/api/trips/${id}/photos`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ photoId }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to remove photo');
+      }
+
+      fetchTrip();
+    } catch (error) {
+      console.error('Error removing photo:', error);
+      alert('Failed to remove photo from trip');
+    }
+  };
+
+  const handleRemoveDocument = async (documentId: string) => {
+    if (!confirm('Remove this document from the trip?')) return;
+
+    try {
+      const response = await fetch(`/api/trips/${id}/documents`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ documentId }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to remove document');
+      }
+
+      fetchTrip();
+    } catch (error) {
+      console.error('Error removing document:', error);
+      alert('Failed to remove document from trip');
     }
   };
 
@@ -289,36 +336,58 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
                   <p className="text-muted-foreground mb-4">
                     Add photos from your gallery to this trip
                   </p>
-                  <Link href="/gallery">
-                    <Button className="gap-2">
-                      <Plus className="w-4 h-4" />
-                      Add from Gallery
-                    </Button>
-                  </Link>
+                  <Button className="gap-2" onClick={() => setShowAddPhotosModal(true)}>
+                    <Plus className="w-4 h-4" />
+                    Add Photos
+                  </Button>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {trip.photos.map((photo) => (
-                    <div
-                      key={photo.id}
-                      className="relative aspect-square bg-muted rounded-lg overflow-hidden group"
+                <>
+                  <div className="flex justify-end mb-4">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                      onClick={() => setShowAddPhotosModal(true)}
                     >
-                      <Image
-                        src={photo.fileUrl}
-                        alt={photo.fileName}
-                        fill
-                        className="object-cover transition-transform duration-300 group-hover:scale-105"
-                        sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
-                        unoptimized
-                      />
-                      {photo.metadata?.location && (
-                        <div className="absolute bottom-2 left-2 px-2 py-1 rounded bg-black/50 backdrop-blur-sm">
-                          <MapPin className="w-3 h-3 text-white" />
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
+                      <Plus className="w-4 h-4" />
+                      Add Photos
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {trip.photos.map((photo) => (
+                      <div
+                        key={photo.id}
+                        className="relative aspect-square bg-muted rounded-lg overflow-hidden group"
+                      >
+                        <Image
+                          src={photo.thumbnailUrl || photo.fileUrl}
+                          alt={photo.fileName}
+                          fill
+                          className="object-cover transition-transform duration-300 group-hover:scale-105"
+                          sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+                          unoptimized
+                        />
+                        {photo.metadata?.location && (
+                          <div className="absolute bottom-2 left-2 px-2 py-1 rounded bg-black/50 backdrop-blur-sm">
+                            <MapPin className="w-3 h-3 text-white" />
+                          </div>
+                        )}
+                        {/* Remove button */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRemovePhoto(photo.id);
+                          }}
+                          className="absolute top-2 right-2 p-1.5 rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-100 hover:bg-red-500 transition-all"
+                          title="Remove from trip"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </>
               )}
             </div>
           )}
@@ -332,33 +401,56 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
                   <p className="text-muted-foreground mb-4">
                     Add documents from your library to this trip
                   </p>
-                  <Link href="/documents">
-                    <Button className="gap-2">
-                      <Plus className="w-4 h-4" />
-                      Add from Documents
-                    </Button>
-                  </Link>
+                  <Button className="gap-2" onClick={() => setShowAddDocumentsModal(true)}>
+                    <Plus className="w-4 h-4" />
+                    Add Documents
+                  </Button>
                 </div>
               ) : (
-                <div className="space-y-3">
-                  {trip.documents.map((doc) => (
-                    <Link
-                      key={doc.id}
-                      href={`/documents/${doc.id}`}
-                      className="flex items-center gap-4 p-4 bg-card border border-border rounded-lg hover:border-primary/30 transition-colors"
+                <>
+                  <div className="flex justify-end mb-4">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                      onClick={() => setShowAddDocumentsModal(true)}
                     >
-                      <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                        <FileText className="w-5 h-5 text-primary" />
+                      <Plus className="w-4 h-4" />
+                      Add Documents
+                    </Button>
+                  </div>
+                  <div className="space-y-3">
+                    {trip.documents.map((doc) => (
+                      <div
+                        key={doc.id}
+                        className="flex items-center gap-4 p-4 bg-card border border-border rounded-lg hover:border-primary/30 transition-colors group"
+                      >
+                        <Link
+                          href={`/documents/${doc.id}`}
+                          className="flex items-center gap-4 flex-1 min-w-0"
+                        >
+                          <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <FileText className="w-5 h-5 text-primary" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-medium text-foreground truncate">{doc.title}</h4>
+                            <p className="text-sm text-muted-foreground">
+                              Updated {new Date(doc.updatedAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </Link>
+                        {/* Remove button */}
+                        <button
+                          onClick={() => handleRemoveDocument(doc.id)}
+                          className="p-2 rounded-full text-muted-foreground opacity-0 group-hover:opacity-100 hover:bg-red-100 hover:text-red-500 transition-all flex-shrink-0"
+                          title="Remove from trip"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-foreground truncate">{doc.title}</h4>
-                        <p className="text-sm text-muted-foreground">
-                          Updated {new Date(doc.updatedAt).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                </>
               )}
             </div>
           )}
@@ -392,6 +484,30 @@ export default function TripDetailPage({ params }: { params: Promise<{ id: strin
           isOpen={!!selectedLocation}
           location={selectedLocation}
           onClose={() => setSelectedLocation(null)}
+        />
+
+        {/* Add Photos Modal */}
+        <AddPhotosModal
+          isOpen={showAddPhotosModal}
+          onClose={() => setShowAddPhotosModal(false)}
+          tripId={id}
+          existingPhotoIds={trip.photos.map((p) => p.id)}
+          onSuccess={() => {
+            setShowAddPhotosModal(false);
+            fetchTrip();
+          }}
+        />
+
+        {/* Add Documents Modal */}
+        <AddDocumentsModal
+          isOpen={showAddDocumentsModal}
+          onClose={() => setShowAddDocumentsModal(false)}
+          tripId={id}
+          existingDocumentIds={trip.documents.map((d) => d.id)}
+          onSuccess={() => {
+            setShowAddDocumentsModal(false);
+            fetchTrip();
+          }}
         />
       </div>
     </AppLayout>

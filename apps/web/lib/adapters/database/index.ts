@@ -34,8 +34,9 @@ export type {
 } from './types';
 export { DatabaseAdapterError } from './types';
 
-// Singleton instance
+// Singleton instance and initialization promise
 let databaseAdapterInstance: DatabaseAdapter | null = null;
+let initializationPromise: Promise<void> | null = null;
 
 /**
  * Get database adapter configuration from environment variables
@@ -95,8 +96,8 @@ export function createDatabaseAdapter(config?: DatabaseAdapterConfig): DatabaseA
 
     case 'drizzle-sqlite': {
       const adapter = new DrizzleSqliteAdapter(resolvedConfig.drizzle);
-      // Initialize database tables
-      adapter.initialize();
+      // Initialize database tables - store promise to await later
+      initializationPromise = adapter.initialize();
       return adapter;
     }
 
@@ -131,10 +132,25 @@ export function getDatabaseAdapter(): DatabaseAdapter {
 }
 
 /**
+ * Ensure the database adapter is fully initialized
+ *
+ * Call this before performing any database operations to ensure
+ * migrations and table creation have completed.
+ */
+export async function ensureDatabaseReady(): Promise<DatabaseAdapter> {
+  const adapter = getDatabaseAdapter();
+  if (initializationPromise) {
+    await initializationPromise;
+  }
+  return adapter;
+}
+
+/**
  * Reset the singleton instance (useful for testing)
  */
 export function resetDatabaseAdapter(): void {
   databaseAdapterInstance = null;
+  initializationPromise = null;
 }
 
 /**

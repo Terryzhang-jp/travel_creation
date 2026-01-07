@@ -116,6 +116,7 @@ export const trips = sqliteTable('trips', {
 export const canvasProjects = sqliteTable('canvas_projects', {
   id: text('id').primaryKey(),
   userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  tripId: text('trip_id'),
   title: text('title').notNull(),
   viewport: text('viewport', { mode: 'json' }).$type<{ x: number; y: number; zoom: number }>(),
   elements: text('elements', { mode: 'json' }).$type<unknown[]>().default([]),

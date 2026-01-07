@@ -9,6 +9,7 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth/session";
 import { canvasStorage, DataValidationError } from "@/lib/storage/canvas-storage";
+import { ensureDatabaseReady } from "@/lib/adapters/database";
 import type { CanvasSaveRequest } from "@/types/storage";
 import { VersionConflictError } from "@/types/storage";
 
@@ -25,6 +26,9 @@ export async function GET(req: Request, { params }: RouteParams) {
     const session = await requireAuth(req);
     const userId = session.userId;
     const { id } = await params;
+
+    // Ensure database is initialized before querying
+    await ensureDatabaseReady();
 
     const project = await canvasStorage.findById(id);
 
@@ -77,6 +81,9 @@ async function handleUpdate(req: Request, params: RouteParams["params"]) {
     const session = await requireAuth(req);
     const userId = session.userId;
     const { id } = await params;
+
+    // Ensure database is initialized before updating
+    await ensureDatabaseReady();
 
     const body: Partial<CanvasSaveRequest> = await req.json();
 
@@ -153,6 +160,9 @@ export async function DELETE(req: Request, { params }: RouteParams) {
     const session = await requireAuth(req);
     const userId = session.userId;
     const { id } = await params;
+
+    // Ensure database is initialized before deleting
+    await ensureDatabaseReady();
 
     await canvasStorage.delete(id, userId);
 

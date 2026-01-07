@@ -146,6 +146,7 @@ export class DrizzleSqliteAdapter implements DatabaseAdapter {
       `CREATE TABLE IF NOT EXISTS canvas_projects (
         id TEXT PRIMARY KEY,
         user_id TEXT NOT NULL REFERENCES user(id) ON DELETE CASCADE,
+        trip_id TEXT,
         title TEXT NOT NULL,
         viewport TEXT,
         elements TEXT DEFAULT '[]',
@@ -185,6 +186,7 @@ export class DrizzleSqliteAdapter implements DatabaseAdapter {
       `CREATE INDEX IF NOT EXISTS idx_trips_user_id ON trips(user_id)`,
       `CREATE INDEX IF NOT EXISTS idx_trips_share_slug ON trips(share_slug)`,
       `CREATE INDEX IF NOT EXISTS idx_canvas_projects_user_id ON canvas_projects(user_id)`,
+      // idx_canvas_projects_trip_id is created after migration adds the column
       `CREATE INDEX IF NOT EXISTS idx_ai_magic_history_user_id ON ai_magic_history(user_id)`,
       `CREATE INDEX IF NOT EXISTS idx_photo_embeddings_user_id ON photo_embeddings(user_id)`,
       // ============================================
@@ -239,6 +241,50 @@ export class DrizzleSqliteAdapter implements DatabaseAdapter {
 
     for (const stmt of statements) {
       await this.client.execute(stmt);
+    }
+
+    // Run migrations for existing tables (add new columns if they don't exist)
+    await this.runMigrations();
+  }
+
+  /**
+   * Run migrations to add new columns to existing tables
+   * SQLite doesn't support IF NOT EXISTS for ALTER TABLE, so we use try-catch
+   */
+  private async runMigrations(): Promise<void> {
+    // Step 1: Add new columns (may fail if already exists)
+    const alterTableMigrations = [
+      // Add trip_id to canvas_projects if it doesn't exist
+      `ALTER TABLE canvas_projects ADD COLUMN trip_id TEXT`,
+    ];
+
+    for (const migration of alterTableMigrations) {
+      try {
+        await this.client.execute(migration);
+        console.log(`[SQLite Migration] Success: ${migration.substring(0, 50)}...`);
+      } catch (error: unknown) {
+        // Ignore "duplicate column" errors (column already exists)
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        if (errorMessage.includes('duplicate column') || errorMessage.includes('already exists')) {
+          // Column already exists, skip silently
+        } else {
+          console.error(`[SQLite Migration] Error: ${errorMessage}`);
+        }
+      }
+    }
+
+    // Step 2: Create indexes on new columns (safe to run after columns exist)
+    const indexMigrations = [
+      `CREATE INDEX IF NOT EXISTS idx_canvas_projects_trip_id ON canvas_projects(trip_id)`,
+    ];
+
+    for (const migration of indexMigrations) {
+      try {
+        await this.client.execute(migration);
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error(`[SQLite Migration] Index error: ${errorMessage}`);
+      }
     }
   }
 
@@ -1015,6 +1061,7 @@ export class DrizzleSqliteAdapter implements DatabaseAdapter {
       const row = {
         id,
         userId: data.userId,
+        tripId: data.tripId || null,
         title: data.title,
         viewport: data.viewport || { x: 0, y: 0, zoom: 1 },
         elements: data.elements || [],
@@ -1050,6 +1097,17 @@ export class DrizzleSqliteAdapter implements DatabaseAdapter {
       return rows.map(row => this.mapCanvas(row));
     },
 
+    findByTripId: async (tripId: string, options?: QueryOptions): Promise<CanvasProject[]> => {
+      let query = this.db.select().from(schema.canvasProjects).where(eq(schema.canvasProjects.tripId, tripId));
+
+      if (options?.orderBy === 'updatedAt') {
+        query = query.orderBy(options.orderDirection === 'asc' ? asc(schema.canvasProjects.updatedAt) : desc(schema.canvasProjects.updatedAt)) as typeof query;
+      }
+
+      const rows = await query;
+      return rows.map(row => this.mapCanvas(row));
+    },
+
     findDefault: async (userId: string): Promise<CanvasProject | null> => {
       const rows = await this.db.select().from(schema.canvasProjects)
         .where(eq(schema.canvasProjects.userId, userId))
@@ -1064,6 +1122,7 @@ export class DrizzleSqliteAdapter implements DatabaseAdapter {
       const now = new Date().toISOString();
 
       const updateData: Record<string, unknown> = { updatedAt: now };
+      if (data.tripId !== undefined) updateData.tripId = data.tripId || null;
       if (data.title !== undefined) updateData.title = data.title;
       if (data.viewport !== undefined) updateData.viewport = data.viewport;
       if (data.elements !== undefined) updateData.elements = data.elements;
@@ -1104,6 +1163,7 @@ export class DrizzleSqliteAdapter implements DatabaseAdapter {
     return {
       id: row.id,
       userId: row.userId,
+      tripId: row.tripId || undefined,
       title: row.title,
       viewport: row.viewport as CanvasProject['viewport'],
       elements: row.elements as CanvasProject['elements'],

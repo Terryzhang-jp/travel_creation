@@ -107,6 +107,7 @@ interface CanvasState {
 interface CanvasActions {
   // Project actions
   loadProject: () => Promise<void>;
+  loadProjectById: (projectId: string) => Promise<void>;
   setProjectTitle: (title: string) => void;
 
   // Viewport actions
@@ -323,6 +324,73 @@ export const useCanvasStore = create<CanvasStore>()(
           saveStatus: "saved",
           hasUnsavedChanges: false,
           // Initialize history with loaded state
+          history: [
+            {
+              elements: project.elements || [],
+              viewport: project.viewport || DEFAULT_VIEWPORT,
+            },
+          ],
+          historyIndex: 0,
+        });
+      } catch (error) {
+        console.error("Load error:", error);
+        set({
+          isLoading: false,
+          loadError: error instanceof Error ? error.message : "Failed to load project",
+        });
+      }
+    },
+
+    loadProjectById: async (projectId: string) => {
+      set({ isLoading: true, loadError: null });
+
+      try {
+        const response = await fetch(`/api/canvas/${projectId}`);
+        if (!response.ok) {
+          if (response.status === 404) {
+            throw new Error("Project not found");
+          }
+          throw new Error("Failed to load project");
+        }
+
+        const data = await response.json();
+        const project: CanvasProject = data.project;
+
+        console.log("[Store.loadProjectById] Loaded from server:", {
+          projectId: project.id,
+          isMagazineMode: project.isMagazineMode,
+          pagesCount: project.pages?.length,
+          elementsCount: project.elements?.length,
+          version: project.version,
+        });
+
+        const isMagazineMode = project.isMagazineMode ?? true;
+        let pages = project.pages || [];
+
+        if (isMagazineMode && pages.length === 0) {
+          pages = [
+            {
+              id: uuidv4(),
+              index: 0,
+              elements: [],
+            },
+          ];
+        }
+
+        set({
+          projectId: project.id,
+          projectTitle: project.title,
+          projectVersion: project.version || 1,
+          viewport: project.viewport || DEFAULT_VIEWPORT,
+          elements: project.elements || [],
+          isMagazineMode,
+          pages,
+          currentPageIndex: project.currentPageIndex || 0,
+          currentSpreadIndex: 0,
+          magazineViewMode: "preview",
+          isLoading: false,
+          saveStatus: "saved",
+          hasUnsavedChanges: false,
           history: [
             {
               elements: project.elements || [],

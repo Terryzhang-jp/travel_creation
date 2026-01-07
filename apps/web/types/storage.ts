@@ -462,6 +462,7 @@ export type JournalFont = (typeof JOURNAL_FONTS)[number];
 export interface CanvasProject {
   id: string; // UUID
   userId: string; // 所属用户 ID
+  tripId?: string; // 所属旅行 ID（可选）
   title: string; // 项目标题
 
   // 无限画布数据（isMagazineMode = false 时使用）
@@ -489,9 +490,11 @@ export interface CanvasProject {
  */
 export interface CanvasProjectIndex {
   id: string;
+  tripId?: string;
   title: string;
   thumbnailUrl?: string;
   elementCount: number; // 元素数量（替代 pageCount）
+  isMagazineMode?: boolean; // 是否为杂志模式
   updatedAt: string;
 }
 
@@ -500,8 +503,10 @@ export interface CanvasProjectIndex {
  */
 export interface CanvasSaveRequest {
   title?: string;
+  tripId?: string;
   viewport?: CanvasViewport;
   elements?: CanvasElement[];
+  isMagazineMode?: boolean;
   expectedVersion?: number; // 乐观锁：客户端期望的版本号
 }
 

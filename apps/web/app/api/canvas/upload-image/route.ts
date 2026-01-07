@@ -14,11 +14,15 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth/session";
 import { canvasStorage } from "@/lib/storage/canvas-storage";
+import { ensureDatabaseReady } from "@/lib/adapters/database";
 
 export async function POST(req: Request) {
   try {
     const session = await requireAuth(req);
     const userId = session.userId;
+
+    // Ensure database is initialized before querying
+    await ensureDatabaseReady();
 
     // 解析 FormData
     const formData = await req.formData();

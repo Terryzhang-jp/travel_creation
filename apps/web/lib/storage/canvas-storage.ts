@@ -355,7 +355,7 @@ export class CanvasStorage {
    */
   async create(
     userId: string,
-    data: CanvasSaveRequest
+    data: CanvasSaveRequest & { tripId?: string }
   ): Promise<CanvasProject> {
     // 验证数据
     if (data.elements) {
@@ -373,9 +373,11 @@ export class CanvasStorage {
     return this.db.canvas.create({
       id: projectId,
       userId,
+      tripId: data.tripId,
       title: data.title || "Untitled Canvas",
       viewport: data.viewport || DEFAULT_VIEWPORT,
       elements: processedElements,
+      isMagazineMode: data.isMagazineMode ?? true,
     });
   }
 
@@ -411,9 +413,44 @@ export class CanvasStorage {
 
       return {
         id: project.id,
+        tripId: project.tripId,
         title: project.title,
         thumbnailUrl: project.thumbnailUrl,
         elementCount,
+        isMagazineMode: project.isMagazineMode,
+        updatedAt: project.updatedAt,
+      };
+    });
+  }
+
+  /**
+   * 根据旅行 ID 获取项目列表
+   */
+  async findByTripId(tripId: string): Promise<CanvasProjectIndex[]> {
+    const projects = await this.db.canvas.findByTripId(tripId, {
+      orderBy: 'updatedAt',
+      orderDirection: 'desc',
+    });
+
+    return projects.map((project) => {
+      let elementCount = 0;
+      if (Array.isArray(project.elements)) {
+        elementCount = project.elements.length;
+      } else if (Array.isArray(project.pages)) {
+        elementCount = project.pages.reduce(
+          (sum: number, page: MagazinePage) =>
+            sum + (Array.isArray(page.elements) ? page.elements.length : 0),
+          0
+        );
+      }
+
+      return {
+        id: project.id,
+        tripId: project.tripId,
+        title: project.title,
+        thumbnailUrl: project.thumbnailUrl,
+        elementCount,
+        isMagazineMode: project.isMagazineMode,
         updatedAt: project.updatedAt,
       };
     });
@@ -425,7 +462,7 @@ export class CanvasStorage {
   async update(
     projectId: string,
     userId: string,
-    data: Partial<CanvasSaveRequest>
+    data: Partial<CanvasSaveRequest> & { tripId?: string }
   ): Promise<CanvasProject> {
     // 验证数据
     if (data.elements) {
@@ -456,6 +493,10 @@ export class CanvasStorage {
 
     // 准备更新数据
     const updateInput: Parameters<typeof this.db.canvas.update>[1] = {};
+
+    if (data.tripId !== undefined) {
+      updateInput.tripId = data.tripId;
+    }
 
     if (data.title !== undefined) {
       updateInput.title = data.title;

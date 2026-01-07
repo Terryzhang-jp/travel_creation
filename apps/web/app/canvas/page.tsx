@@ -1,743 +1,308 @@
-/**
- * Canvas Journal Page
- *
- * Supports two modes:
- * - Magazine Mode: A4 pages with dual-spread preview and single-page editing
- * - Infinite Canvas Mode: Traditional infinite pan/zoom canvas (legacy)
- */
-
 "use client";
 
-import { useEffect, useRef, useCallback, useState } from "react";
-import { Stage, Layer, Transformer } from "react-konva";
-import Konva from "konva";
-import { removeBackground as imglyRemoveBackground } from "@imgly/background-removal";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Button } from "@/components/tailwind/ui/button";
+import { Plus, Search, Trash2, Palette, BookOpen, Grid3X3 } from "lucide-react";
+import { AppLayout } from "@/components/layout/app-layout";
 import { toast } from "sonner";
+import type { CanvasProjectIndex } from "@/types/storage";
 
-// Store & Hooks
-import { useCanvasStore } from "@/lib/canvas/canvas-store";
-import {
-  useCanvasKeyboard,
-  useCanvasAutoSave,
-  useToolbarVisibility,
-  useFontLoader,
-} from "@/lib/canvas/hooks";
+export default function CanvasListPage() {
+  const [projects, setProjects] = useState<CanvasProjectIndex[]>([]);
+  const [filteredProjects, setFilteredProjects] = useState<CanvasProjectIndex[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; title: string } | null>(null);
+  const router = useRouter();
 
-// Components
-import {
-  CanvasRichText,
-  CanvasImageElement,
-  HtmlTextEditor,
-  CanvasGrid,
-} from "@/components/canvas/elements";
-import { SelectionRect } from "@/components/canvas/elements/selection-rect";
-import {
-  CanvasTopToolbar,
-  LayerToolbar,
-  TextPropertiesToolbar,
-  ZoomControls,
-  CanvasHints,
-} from "@/components/canvas/toolbars";
-import { StickerPicker } from "@/components/canvas/sticker-picker";
-import { DocumentPicker } from "@/components/canvas/document-picker";
-import { AiSpotlight } from "@/components/canvas/ai-spotlight";
-import { AiMagicSidebar } from "@/components/canvas/ai-magic-sidebar";
-import { CanvasPhotoSidebar } from "@/components/canvas/canvas-photo-sidebar";
-import { useAiMagicStore } from "@/lib/canvas/ai-magic-store";
-import { CanvasErrorBoundary } from "@/components/canvas/canvas-error-boundary";
-import { CanvasEmptyState } from "@/components/canvas/canvas-empty-state";
-import { CanvasLoading } from "@/components/canvas/canvas-loading";
-
-// Magazine Mode Components
-import { MagazineCanvas } from "@/components/canvas/magazine";
-
-// Types
-import type { CanvasElement, TextEditingState } from "@/types/storage";
-import { CANVAS_CONFIG } from "@/types/storage";
-
-/**
- * Main Canvas Page Component
- * Routes to Magazine or Infinite Canvas based on project mode
- */
-export default function CanvasPage() {
-  const { isLoading, loadProject, isMagazineMode } = useCanvasStore();
-
-  // Load project on mount
   useEffect(() => {
-    loadProject();
-  }, [loadProject]);
-
-  // Show loading state
-  if (isLoading) {
-    return <CanvasLoading />;
-  }
-
-  // Route to appropriate canvas mode
-  if (isMagazineMode) {
-    return (
-      <CanvasErrorBoundary>
-        <MagazineCanvas />
-      </CanvasErrorBoundary>
-    );
-  }
-
-  // Fallback to infinite canvas mode
-  return (
-    <CanvasErrorBoundary>
-      <InfiniteCanvas />
-    </CanvasErrorBoundary>
-  );
-}
-
-/**
- * Infinite Canvas Component (Legacy Mode)
- */
-function InfiniteCanvas() {
-  // Refs
-  const stageRef = useRef<Konva.Stage>(null);
-  const transformerRef = useRef<Konva.Transformer>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  // Local state
-  const [stageSize, setStageSize] = useState({ width: 1920, height: 1080 });
-  const [lastPointerPos, setLastPointerPos] = useState({ x: 0, y: 0 });
-  const [showSpotlight, setShowSpotlight] = useState(false);
-
-  // Store
-  const {
-    viewport,
-    setViewport,
-    zoomToPoint,
-    elements,
-    addElement,
-    updateElement,
-    selectedId,
-    selectedIds,
-    setSelectedId,
-    clearSelection,
-    toggleSelection,
-    editingState,
-    startEditing,
-    stopEditing,
-    tool,
-    isPanning,
-    setIsPanning,
-    showGrid,
-    showStickerPicker,
-    setShowStickerPicker,
-    showPhotoSidebar,
-    setShowPhotoSidebar,
-    isProcessingBg,
-    setIsProcessingBg,
-    getCanvasCenter,
-    getSelectedElement,
-    // Marquee selection
-    isMarqueeSelecting,
-    marqueeRect,
-    startMarqueeSelect,
-    updateMarqueeSelect,
-    endMarqueeSelect,
-    // Document picker
-    showDocumentPicker,
-    toggleDocumentPicker,
-  } = useCanvasStore();
-
-  // AI Magic
-  const { isOpen: isAiMagicOpen, openSidebar: openAiMagicSidebar } = useAiMagicStore();
-
-  // Hooks
-  useCanvasKeyboard();
-  useCanvasAutoSave();
-  const toolbarVisible = useToolbarVisibility();
-  useFontLoader();
-
-  // Update stage size on resize
-  useEffect(() => {
-    const updateSize = () => {
-      if (containerRef.current) {
-        setStageSize({
-          width: containerRef.current.offsetWidth,
-          height: containerRef.current.offsetHeight,
-        });
-      }
-    };
-    updateSize();
-    window.addEventListener("resize", updateSize);
-    return () => window.removeEventListener("resize", updateSize);
+    fetchProjects();
   }, []);
 
-  // Update transformer on selection change
   useEffect(() => {
-    if (!transformerRef.current || !stageRef.current) return;
-
-    // 多选模式
-    if (selectedIds.length > 0) {
-      const nodes = selectedIds
-        .map((id) => stageRef.current?.findOne(`#${id}`))
-        .filter(Boolean) as Konva.Node[];
-      transformerRef.current.nodes(nodes);
-      return;
-    }
-
-    // 单选模式
-    if (selectedId) {
-      const node = stageRef.current.findOne(`#${selectedId}`);
-      if (node) {
-        transformerRef.current.nodes([node]);
-      }
+    if (searchQuery.trim() === "") {
+      setFilteredProjects(projects);
     } else {
-      transformerRef.current.nodes([]);
+      const query = searchQuery.toLowerCase();
+      const filtered = projects.filter((project) =>
+        project.title.toLowerCase().includes(query)
+      );
+      setFilteredProjects(filtered);
     }
-  }, [selectedId, selectedIds]);
+  }, [searchQuery, projects]);
 
-  // ==================== Handlers ====================
+  const fetchProjects = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch("/api/canvas");
 
-  const handleWheel = useCallback(
-    (e: Konva.KonvaEventObject<WheelEvent>) => {
-      e.evt.preventDefault();
-      const stage = stageRef.current;
-      if (!stage) return;
-
-      const pointer = stage.getPointerPosition();
-      if (!pointer) return;
-
-      const direction = e.evt.deltaY > 0 ? -1 : 1;
-      zoomToPoint(pointer.x, pointer.y, stage.x(), stage.y(), direction as 1 | -1);
-    },
-    [zoomToPoint]
-  );
-
-  const handleMouseDown = useCallback(
-    (e: Konva.KonvaEventObject<MouseEvent>) => {
-      // 开始拖拽画布时，关闭编辑状态
-      if (tool === "pan" || e.evt.button === 1) {
-        if (editingState) {
-          stopEditing();
-        }
-        setIsPanning(true);
-        setLastPointerPos({ x: e.evt.clientX, y: e.evt.clientY });
-        return;
+      if (response.ok) {
+        const data = await response.json();
+        setProjects(data.projects || []);
+        setFilteredProjects(data.projects || []);
+      } else if (response.status === 401) {
+        router.push("/login");
+      } else {
+        setError("Failed to load canvas projects");
       }
-
-      // 点击画布空白区域
-      if (e.target === e.target.getStage()) {
-        // 关闭编辑状态
-        if (editingState) {
-          stopEditing();
-        }
-
-        // Ctrl/Cmd+Click 保持现有选择，普通点击清除
-        if (!e.evt.ctrlKey && !e.evt.metaKey) {
-          clearSelection();
-        }
-
-        // 开始框选 - 使用画布坐标
-        const stage = e.target.getStage();
-        if (stage) {
-          const pointer = stage.getPointerPosition();
-          if (pointer) {
-            // 转换为画布坐标
-            const canvasX = (pointer.x - viewport.x) / viewport.zoom;
-            const canvasY = (pointer.y - viewport.y) / viewport.zoom;
-            startMarqueeSelect(canvasX, canvasY);
-          }
-        }
-      }
-    },
-    [tool, setIsPanning, clearSelection, editingState, stopEditing, viewport, startMarqueeSelect]
-  );
-
-  const handleMouseMove = useCallback(
-    (e: Konva.KonvaEventObject<MouseEvent>) => {
-      // 画布拖拽
-      if (isPanning) {
-        const dx = e.evt.clientX - lastPointerPos.x;
-        const dy = e.evt.clientY - lastPointerPos.y;
-        setViewport({ x: viewport.x + dx, y: viewport.y + dy });
-        setLastPointerPos({ x: e.evt.clientX, y: e.evt.clientY });
-        return;
-      }
-
-      // 框选中
-      if (isMarqueeSelecting) {
-        const stage = stageRef.current;
-        if (stage) {
-          const pointer = stage.getPointerPosition();
-          if (pointer) {
-            // 转换为画布坐标
-            const canvasX = (pointer.x - viewport.x) / viewport.zoom;
-            const canvasY = (pointer.y - viewport.y) / viewport.zoom;
-            updateMarqueeSelect(canvasX, canvasY);
-          }
-        }
-      }
-    },
-    [isPanning, isMarqueeSelecting, lastPointerPos, viewport, setViewport, updateMarqueeSelect]
-  );
-
-  const handleMouseUp = useCallback(() => {
-    if (isPanning) {
-      setIsPanning(false);
+    } catch (err) {
+      setError("An error occurred while loading projects");
+    } finally {
+      setLoading(false);
     }
-    if (isMarqueeSelecting) {
-      endMarqueeSelect();
-    }
-  }, [isPanning, setIsPanning, isMarqueeSelecting, endMarqueeSelect]);
+  };
 
-  // ==================== Element Actions ====================
+  const handleCreateProject = () => {
+    router.push("/canvas/new");
+  };
 
-  const handleAddPhoto = useCallback(() => {
-    fileInputRef.current?.click();
-  }, []);
+  const handleDeleteProject = (id: string, title: string) => {
+    setDeleteConfirm({ id, title });
+  };
 
-  const handlePhotoUpload = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
+  const confirmDelete = async () => {
+    if (!deleteConfirm) return;
 
-      // 文件大小限制：10MB
-      const maxSizeBytes = 10 * 1024 * 1024;
-      if (file.size > maxSizeBytes) {
-        toast.error("Image file too large", {
-          description: `Maximum 10MB, current file ${(file.size / 1024 / 1024).toFixed(1)}MB`,
-        });
-        e.target.value = "";
-        return;
-      }
-
-      // 检查文件类型
-      const validTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
-      if (!validTypes.includes(file.type)) {
-        toast.error("Unsupported image format", {
-          description: "Please use JPG, PNG, GIF or WebP format",
-        });
-        e.target.value = "";
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const img = new Image();
-        img.onload = () => {
-          const maxWidth = CANVAS_CONFIG.MAX_IMAGE_WIDTH;
-          const scale = img.width > maxWidth ? maxWidth / img.width : 1;
-          const center = getCanvasCenter(stageSize.width, stageSize.height);
-
-          addElement({
-            id: `image-${Date.now()}`,
-            type: "image",
-            x: center.x - (img.width * scale) / 2,
-            y: center.y - (img.height * scale) / 2,
-            src: event.target?.result as string,
-            width: img.width * scale,
-            height: img.height * scale,
-          });
-        };
-        img.src = event.target?.result as string;
-      };
-      reader.readAsDataURL(file);
-      e.target.value = "";
-    },
-    [addElement, getCanvasCenter, stageSize]
-  );
-
-  const handleAddText = useCallback(() => {
-    const center = getCanvasCenter(stageSize.width, stageSize.height);
-    const stage = stageRef.current;
-    const zoom = viewport.zoom;
-
-    const newElement = {
-      id: `text-${Date.now()}`,
-      type: "text" as const,
-      x: center.x - 100,
-      y: center.y - 20,
-      text: "",
-      html: "",
-      fontSize: 24,
-      fontFamily: "ZCOOL XiaoWei",
-      fill: "#333333",
-      width: 200,
-      height: 40,
-    };
-
-    addElement(newElement);
-
-    // 延迟后自动进入编辑状态（等待元素渲染）
-    setTimeout(() => {
-      if (stage) {
-        const stageBox = stage.container().getBoundingClientRect();
-        const screenX = stageBox.left + (newElement.x * zoom + viewport.x);
-        const screenY = stageBox.top + (newElement.y * zoom + viewport.y);
-
-        startEditing({
-          id: newElement.id,
-          initialHtml: "",
-          x: screenX,
-          y: screenY,
-          width: Math.max(150, newElement.width * zoom),
-          height: Math.max(30, newElement.height * zoom),
-          zoom: zoom,
-          style: {
-            fontSize: newElement.fontSize,
-            fontFamily: newElement.fontFamily,
-            fill: newElement.fill,
-          },
-        });
-      }
-    }, 50);
-  }, [addElement, getCanvasCenter, stageSize, viewport, startEditing]);
-
-  const handleAddSticker = useCallback(
-    (emoji: string) => {
-      const center = getCanvasCenter(stageSize.width, stageSize.height);
-      addElement({
-        id: `sticker-${Date.now()}`,
-        type: "sticker",
-        x: center.x - 50,
-        y: center.y - 50,
-        text: emoji,
-        fontSize: 80,
-        fontFamily: "Arial",
-        fill: "#000000",
-        width: 100,
-        height: 100,
-      });
-      setShowStickerPicker(false);
-    },
-    [addElement, getCanvasCenter, stageSize, setShowStickerPicker]
-  );
-
-  const handlePhotoFromSidebar = useCallback(
-    (photoUrl: string, width: number, height: number) => {
-      const center = getCanvasCenter(stageSize.width, stageSize.height);
-      addElement({
-        id: `gallery-${Date.now()}`,
-        type: "image",
-        x: center.x - width / 2,
-        y: center.y - height / 2,
-        width,
-        height,
-        src: photoUrl,
-      });
-    },
-    [addElement, getCanvasCenter, stageSize]
-  );
-
-  // Handle document text selection
-  const handleDocumentTextSelect = useCallback(
-    (text: string) => {
-      const center = getCanvasCenter(stageSize.width, stageSize.height);
-      addElement({
-        id: `doc-text-${Date.now()}`,
-        type: "text",
-        x: center.x - 150,
-        y: center.y - 25,
-        text,
-        html: text,
-        width: 300,
-        fontSize: 24,
-        fontFamily: "Noto Sans SC",
-        fill: "#333333",
-      });
-      toggleDocumentPicker();
-    },
-    [addElement, getCanvasCenter, stageSize, toggleDocumentPicker]
-  );
-
-  const handleTextDblClick = useCallback(
-    (element: CanvasElement) => {
-      const stage = stageRef.current;
-      if (!stage) return;
-
-      const stageBox = stage.container().getBoundingClientRect();
-      const zoom = viewport.zoom;
-
-      // 计算元素在屏幕上的位置（考虑 viewport 偏移和缩放）
-      const screenX = stageBox.left + (element.x * zoom + viewport.x);
-      const screenY = stageBox.top + (element.y * zoom + viewport.y);
-      const screenWidth = Math.max(150, (element.width || 200) * zoom);
-      const screenHeight = Math.max(30, (element.height || 50) * zoom);
-
-      const state: TextEditingState = {
-        id: element.id,
-        initialHtml: element.html || element.text || "",
-        x: screenX,
-        y: screenY,
-        width: screenWidth,
-        height: screenHeight,
-        zoom: zoom,
-        style: {
-          fontSize: element.fontSize || 24,
-          fontFamily: element.fontFamily || "Arial",
-          fill: element.fill || "#333333",
-        },
-      };
-      startEditing(state);
-    },
-    [startEditing, viewport]
-  );
-
-  const handleEditorChange = useCallback(
-    (html: string) => {
-      if (!editingState) return;
-
-      // 将 HTML 转换为纯文本，保留换行
-      const htmlToText = (htmlContent: string): string => {
-        return htmlContent
-          .replace(/<br\s*\/?>/gi, "\n")           // <br> -> 换行
-          .replace(/<\/div><div>/gi, "\n")          // </div><div> -> 换行
-          .replace(/<\/p><p>/gi, "\n")              // </p><p> -> 换行
-          .replace(/<div>/gi, "")                   // 移除开始 div
-          .replace(/<\/div>/gi, "\n")               // </div> -> 换行
-          .replace(/<p>/gi, "")                     // 移除开始 p
-          .replace(/<\/p>/gi, "\n")                 // </p> -> 换行
-          .replace(/<[^>]*>/g, "")                  // 移除其他 HTML 标签
-          .replace(/&nbsp;/g, " ")                  // &nbsp; -> 空格
-          .replace(/\n+/g, "\n")                    // 合并多个换行
-          .trim();
-      };
-
-      const text = htmlToText(html);
-      updateElement(editingState.id, { html, text });
-    },
-    [editingState, updateElement]
-  );
-
-  const handleRemoveBackground = useCallback(async () => {
-    const element = getSelectedElement();
-    if (!element || element.type !== "image" || !element.src) return;
-
-    setIsProcessingBg(true);
-    toast.info("Removing background...");
+    const { id, title } = deleteConfirm;
+    setDeleteConfirm(null);
 
     try {
-      let imageSource: string | Blob = element.src;
-      if (!element.src.startsWith("blob:") && !element.src.startsWith("data:")) {
-        const response = await fetch(element.src);
-        if (!response.ok) throw new Error("Failed to fetch image");
-        imageSource = await response.blob();
-      }
-
-      const blob = await imglyRemoveBackground(imageSource);
-      const url = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.onerror = () => reject(new Error("Failed to convert image"));
-        reader.readAsDataURL(blob);
+      const response = await fetch(`/api/canvas/${id}`, {
+        method: "DELETE",
       });
 
-      updateElement(element.id, { src: url });
-      toast.success("Background removed!");
-    } catch (error) {
-      console.error("Background removal error:", error);
-      toast.error("Failed to remove background.");
-    } finally {
-      setIsProcessingBg(false);
+      if (response.ok) {
+        setProjects((prev) => prev.filter((p) => p.id !== id));
+        toast.success(`"${title}" has been deleted`);
+      } else {
+        toast.error("Failed to delete project");
+      }
+    } catch (err) {
+      toast.error("An error occurred while deleting the project");
     }
-  }, [getSelectedElement, updateElement, setIsProcessingBg]);
+  };
 
-  const handleInsertFromAiMagic = useCallback(
-    (imageDataUrl: string) => {
-      const img = new Image();
-      img.onload = () => {
-        const maxWidth = CANVAS_CONFIG.MAX_IMAGE_WIDTH;
-        const scale = img.width > maxWidth ? maxWidth / img.width : 1;
-        const center = getCanvasCenter(stageSize.width, stageSize.height);
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
 
-        addElement({
-          id: `ai-magic-${Date.now()}`,
-          type: "image",
-          x: center.x - (img.width * scale) / 2,
-          y: center.y - (img.height * scale) / 2,
-          width: img.width * scale,
-          height: img.height * scale,
-          src: imageDataUrl,
-        });
-        toast.success("AI generated image added!");
-      };
-      img.src = imageDataUrl;
-    },
-    [addElement, getCanvasCenter, stageSize]
-  );
-
-  // ==================== Render ====================
-
-  const selectedElement = getSelectedElement();
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60) return `${diffMins} minutes ago`;
+    if (diffHours < 24) return `${diffHours} hours ago`;
+    if (diffDays < 7) return `${diffDays} days ago`;
+    return date.toLocaleDateString();
+  };
 
   return (
-    <CanvasErrorBoundary>
-      <div
-        className="fixed inset-0 overflow-hidden canvas-paper-bg"
-        ref={containerRef}
-      >
-        {/* Hidden file input */}
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          onChange={handlePhotoUpload}
-          className="hidden"
-        />
+    <AppLayout>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+        {/* Header */}
+        <div className="sticky top-0 z-10 border-b border-border/40 bg-background/80 backdrop-blur-xl transition-all">
+          <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <Palette className="h-5 w-5" />
+                </div>
+                <div>
+                  <h1 className="text-xl font-serif font-bold text-foreground tracking-tight">
+                    Canvas Studio
+                  </h1>
+                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">
+                    {projects.length} {projects.length === 1 ? 'Project' : 'Projects'}
+                  </p>
+                </div>
+              </div>
 
-        {/* Text Editor Overlay */}
-        {editingState && (
-          <HtmlTextEditor
-            editingState={editingState}
-            onChange={handleEditorChange}
-            onBlur={stopEditing}
-          />
-        )}
-
-        {/* Toolbars */}
-        <CanvasTopToolbar
-          onAddPhoto={handleAddPhoto}
-          onAddText={handleAddText}
-          onToggleStickerPicker={() => setShowStickerPicker(!showStickerPicker)}
-          onOpenAiMagic={openAiMagicSidebar}
-          onOpenDocumentPicker={toggleDocumentPicker}
-          visible={toolbarVisible}
-        />
-
-        <TextPropertiesToolbar selectedElement={selectedElement || null} visible={toolbarVisible} />
-
-        <LayerToolbar
-          selectedElement={selectedElement || null}
-          onRemoveBackground={handleRemoveBackground}
-          onMagicEdit={() => setShowSpotlight(true)}
-          visible={toolbarVisible}
-        />
-
-        <ZoomControls visible={toolbarVisible} />
-        <CanvasHints visible={toolbarVisible} />
-
-        {/* Sticker Picker */}
-        {showStickerPicker && (
-          <StickerPicker onSelect={handleAddSticker} onClose={() => setShowStickerPicker(false)} />
-        )}
-
-        {/* Document Picker */}
-        {showDocumentPicker && (
-          <DocumentPicker
-            onSelect={handleDocumentTextSelect}
-            onClose={toggleDocumentPicker}
-          />
-        )}
-
-        {/* AI Spotlight */}
-        {showSpotlight && (
-          <AiSpotlight
-            selectedImage={selectedElement?.type === "image" ? selectedElement.src : null}
-            onGenerate={(src) => {
-              const center = getCanvasCenter(stageSize.width, stageSize.height);
-              addElement({
-                id: `ai-${Date.now()}`,
-                type: "image",
-                x: center.x - 150,
-                y: center.y - 150,
-                width: 300,
-                height: 300,
-                src,
-              });
-              setShowSpotlight(false);
-            }}
-            onEdit={(newSrc) => {
-              if (selectedId) {
-                updateElement(selectedId, { src: newSrc });
-              }
-              setShowSpotlight(false);
-            }}
-            onClose={() => setShowSpotlight(false)}
-          />
-        )}
-
-        {/* AI Magic Sidebar */}
-        <AiMagicSidebar onInsertImage={handleInsertFromAiMagic} />
-
-        {/* Photo Gallery Sidebar */}
-        <CanvasPhotoSidebar
-          isOpen={showPhotoSidebar}
-          onToggle={setShowPhotoSidebar}
-          onPhotoSelect={handlePhotoFromSidebar}
-        />
-
-        {/* Empty State */}
-        {elements.length === 0 && (
-          <CanvasEmptyState
-            onAddPhoto={handleAddPhoto}
-            onAddText={handleAddText}
-            onAddSticker={() => setShowStickerPicker(true)}
-            onOpenAiMagic={openAiMagicSidebar}
-          />
-        )}
-
-        {/* Canvas Stage */}
-        <Stage
-          ref={stageRef}
-          width={stageSize.width}
-          height={stageSize.height}
-          x={viewport.x}
-          y={viewport.y}
-          scaleX={viewport.zoom}
-          scaleY={viewport.zoom}
-          onWheel={handleWheel}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
-          style={{ cursor: tool === "pan" || isPanning ? "grab" : "default" }}
-        >
-          <Layer>
-            {/* Grid */}
-            {showGrid && (
-              <CanvasGrid viewport={viewport} stageWidth={stageSize.width} stageHeight={stageSize.height} />
-            )}
-
-            {/* Elements */}
-            {elements.map((el) => {
-              if (el.type === "text" || el.type === "sticker") {
-                if (editingState?.id === el.id) return null;
-                return (
-                  <CanvasRichText
-                    key={el.id}
-                    element={el}
-                    isSelected={selectedId === el.id}
-                    onSelect={() => setSelectedId(el.id)}
-                    onDblClick={() => handleTextDblClick(el)}
-                    onUpdate={updateElement}
+              <div className="flex items-center gap-3 flex-1 md:justify-end">
+                {/* Search */}
+                <div className="relative w-full md:w-64 group">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                  <input
+                    type="text"
+                    placeholder="Search projects..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="h-10 w-full rounded-full border border-border bg-muted/50 pl-9 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
                   />
-                );
-              }
-              if (el.type === "image") {
-                return (
-                  <CanvasImageElement
-                    key={el.id}
-                    element={el}
-                    isSelected={selectedId === el.id}
-                    onSelect={() => setSelectedId(el.id)}
-                    onUpdate={updateElement}
-                  />
-                );
-              }
-              return null;
-            })}
+                </div>
 
-            {/* Selection Marquee */}
-            {isMarqueeSelecting && marqueeRect && (
-              <SelectionRect rect={marqueeRect} />
-            )}
+                <Button onClick={handleCreateProject} className="h-10 rounded-full px-4 shadow-lg shadow-primary/20">
+                  <Plus className="mr-2 h-4 w-4" />
+                  New Canvas
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
 
-            {/* Transformer */}
-            <Transformer
-              ref={transformerRef}
-              boundBoxFunc={(oldBox, newBox) => {
-                if (newBox.width < 5 || newBox.height < 5) return oldBox;
-                return newBox;
-              }}
-            />
-          </Layer>
-        </Stage>
+        {/* Main Content */}
+        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+          {/* Error Message */}
+          {error && (
+            <div className="mb-6 rounded-lg bg-red-50 p-4 text-sm text-red-800">
+              {error}
+            </div>
+          )}
+
+          {/* Loading State */}
+          {loading && (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <div className="mb-4 inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
+                <p className="text-gray-600">Loading projects...</p>
+              </div>
+            </div>
+          )}
+
+          {/* Empty State */}
+          {!loading && filteredProjects.length === 0 && searchQuery === "" && (
+            <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in zoom-in duration-500">
+              <div className="w-20 h-20 bg-muted/50 rounded-full flex items-center justify-center mb-6">
+                <Palette className="h-10 w-10 text-muted-foreground/50" />
+              </div>
+              <h3 className="mb-2 text-xl font-serif font-bold text-foreground">
+                No Canvas Projects Yet
+              </h3>
+              <p className="mb-8 text-muted-foreground max-w-sm mx-auto">
+                Create your first canvas project to start designing visual stories, journals, or creative compositions.
+              </p>
+              <Button onClick={handleCreateProject} size="lg" className="rounded-full shadow-xl shadow-primary/20">
+                <Plus className="mr-2 h-5 w-5" />
+                Create First Canvas
+              </Button>
+            </div>
+          )}
+
+          {/* No Search Results */}
+          {!loading && filteredProjects.length === 0 && searchQuery !== "" && (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <Search className="mb-4 h-12 w-12 text-muted-foreground/30" />
+              <h3 className="mb-2 text-lg font-medium text-foreground">
+                No matches found
+              </h3>
+              <p className="text-muted-foreground">
+                Try searching for a different keyword.
+              </p>
+            </div>
+          )}
+
+          {/* Project Grid */}
+          {!loading && filteredProjects.length > 0 && (
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {filteredProjects.map((project) => (
+                <div
+                  key={project.id}
+                  className="group relative flex flex-col bg-card hover:bg-card/80 border border-border/50 hover:border-primary/50 rounded-xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden"
+                >
+                  <Link href={`/canvas/${project.id}`} className="flex-1 flex flex-col">
+                    {/* Thumbnail or Placeholder */}
+                    <div className="aspect-[4/3] bg-gradient-to-br from-primary/5 to-primary/10 flex items-center justify-center relative overflow-hidden">
+                      {project.thumbnailUrl ? (
+                        <img
+                          src={project.thumbnailUrl}
+                          alt={project.title}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex flex-col items-center justify-center text-muted-foreground/40">
+                          {project.isMagazineMode ? (
+                            <BookOpen className="w-12 h-12 mb-2" />
+                          ) : (
+                            <Grid3X3 className="w-12 h-12 mb-2" />
+                          )}
+                          <span className="text-xs font-medium">
+                            {project.isMagazineMode ? "Magazine" : "Infinite Canvas"}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Content */}
+                    <div className="p-4 flex-1 flex flex-col">
+                      <div className="flex items-start justify-between mb-2">
+                        <h3 className="text-base font-serif font-bold text-foreground leading-tight group-hover:text-primary transition-colors line-clamp-2 flex-1">
+                          {project.title || "Untitled Canvas"}
+                        </h3>
+                      </div>
+
+                      <div className="flex items-center gap-2 mt-auto pt-2 border-t border-border/30">
+                        <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/70 bg-muted/50 px-2 py-1 rounded-md">
+                          {formatDate(project.updatedAt)}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">
+                          {project.elementCount} elements
+                        </span>
+                      </div>
+                    </div>
+                  </Link>
+
+                  {/* Delete Button */}
+                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleDeleteProject(project.id, project.title);
+                      }}
+                      className="p-2 rounded-lg bg-background/80 backdrop-blur-sm text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors shadow-sm border border-border/50"
+                      title="Delete project"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Project Count */}
+          {!loading && filteredProjects.length > 0 && (
+            <div className="mt-12 text-center">
+              <p className="text-xs font-mono text-muted-foreground/50 uppercase tracking-widest">
+                {searchQuery
+                  ? `Found ${filteredProjects.length} of ${projects.length} projects`
+                  : `End of Gallery • ${projects.length} projects`}
+              </p>
+            </div>
+          )}
+        </div>
       </div>
-    </CanvasErrorBoundary>
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-card border border-border rounded-xl p-6 shadow-2xl max-w-md w-full mx-4 animate-in fade-in zoom-in duration-200">
+            <h3 className="text-lg font-semibold text-foreground mb-2">Delete Canvas Project</h3>
+            <p className="text-muted-foreground mb-6">
+              Are you sure you want to delete "{deleteConfirm.title}"? This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setDeleteConfirm(null)}
+                className="rounded-lg"
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={confirmDelete}
+                className="rounded-lg"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </AppLayout>
   );
 }
