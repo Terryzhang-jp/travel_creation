@@ -260,7 +260,7 @@ export function TemplateSwipeView({ posterData, onTemplateClick }: TemplateSwipe
             <div className="absolute inset-0 bg-black/0 hover:bg-black/5 transition-colors duration-300 flex items-center justify-center">
               <div className="opacity-0 hover:opacity-100 transition-opacity duration-300 bg-white/90 backdrop-blur-sm px-6 py-3 rounded-full shadow-lg">
                 <p className="text-sm font-semibold text-gray-900">
-                  点击编辑此模板
+                  Click to edit this template
                 </p>
               </div>
             </div>
@@ -270,7 +270,7 @@ export function TemplateSwipeView({ posterData, onTemplateClick }: TemplateSwipe
         {/* 滑动提示 */}
         {currentIndex === 0 && (
           <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 text-center text-xs text-muted-foreground animate-pulse">
-            👈 滑动查看更多模板 👉
+            👈 Swipe to see more templates 👉
           </div>
         )}
       </div>

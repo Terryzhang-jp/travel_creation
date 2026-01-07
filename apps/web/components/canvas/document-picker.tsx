@@ -94,7 +94,7 @@ export function DocumentPicker({ onSelect, onClose }: DocumentPickerProps) {
         // No remembered document, show list
         setShowDocumentList(true);
       } catch (err) {
-        setError("无法加载文档");
+        setError("Unable to load documents");
         console.error(err);
       } finally {
         setIsLoading(false);
@@ -118,7 +118,7 @@ export function DocumentPicker({ onSelect, onClose }: DocumentPickerProps) {
       localStorage.setItem(STORAGE_KEY, docId);
       setShowDocumentList(false);
     } catch (err) {
-      setError("无法加载文档内容");
+      setError("Unable to load document content");
       console.error(err);
       setShowDocumentList(true);
     } finally {
@@ -149,7 +149,7 @@ export function DocumentPicker({ onSelect, onClose }: DocumentPickerProps) {
     <div className="py-1">
       {documents.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-40">
-          <span className="text-sm text-neutral-400">暂无文档</span>
+          <span className="text-sm text-neutral-400">No documents</span>
         </div>
       ) : (
         documents.map((doc) => (
@@ -177,7 +177,7 @@ export function DocumentPicker({ onSelect, onClose }: DocumentPickerProps) {
     <div className="py-1">
       {paragraphs.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-40">
-          <span className="text-sm text-neutral-400">无文字内容</span>
+          <span className="text-sm text-neutral-400">No text content</span>
         </div>
       ) : (
         paragraphs.map((para) => (
@@ -224,13 +224,13 @@ export function DocumentPicker({ onSelect, onClose }: DocumentPickerProps) {
             <button
               onClick={() => setShowDocumentList(false)}
               className="p-1 -ml-1 hover:bg-neutral-100 rounded transition-colors"
-              title="返回段落"
+              title="Back to paragraphs"
             >
               <ChevronLeft className="w-4 h-4 text-neutral-400" />
             </button>
           ) : null}
           <span className="text-sm font-medium text-neutral-800 truncate">
-            {showDocumentList ? "选择文档" : (selectedDocument?.title || "文档")}
+            {showDocumentList ? "Select document" : (selectedDocument?.title || "Document")}
           </span>
         </div>
         <div className="flex items-center gap-1">
@@ -238,7 +238,7 @@ export function DocumentPicker({ onSelect, onClose }: DocumentPickerProps) {
             <button
               onClick={handleChangeDocument}
               className="p-1.5 hover:bg-neutral-100 rounded transition-colors"
-              title="切换文档"
+              title="Switch document"
             >
               <RefreshCw className="w-3.5 h-3.5 text-neutral-400" />
             </button>
@@ -274,8 +274,8 @@ export function DocumentPicker({ onSelect, onClose }: DocumentPickerProps) {
         <div className="h-10 px-4 flex items-center justify-center border-t border-neutral-100 flex-shrink-0">
           <span className="text-[11px] text-neutral-400">
             {showDocumentList
-              ? `${documents.length} 个文档`
-              : `${paragraphs.length} 个段落 · 点击插入`
+              ? `${documents.length} document${documents.length !== 1 ? 's' : ''}`
+              : `${paragraphs.length} paragraph${paragraphs.length !== 1 ? 's' : ''} · Click to insert`
             }
           </span>
         </div>

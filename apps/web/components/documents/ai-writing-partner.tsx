@@ -120,7 +120,7 @@ export function AIWritingPartner({
                                             : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
                                     }`}
                                 >
-                                    {isAIEnabled ? '关闭 AI' : '开启 AI'}
+                                    {isAIEnabled ? 'Disable AI' : 'Enable AI'}
                                 </motion.button>
                             )}
                         </AnimatePresence>
@@ -166,10 +166,10 @@ export function AIWritingPartner({
                         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
                             <div className="flex items-center gap-2">
                                 <span className="text-sm">{getStateEmoji()}</span>
-                                <span className="text-sm font-medium text-gray-700">写作助手</span>
+                                <span className="text-sm font-medium text-gray-700">Writing Assistant</span>
                                 {metrics && (
                                     <span className="text-xs text-gray-400 ml-1">
-                                        {metrics.wordCount.toLocaleString()} 字
+                                        {metrics.wordCount.toLocaleString()} words
                                     </span>
                                 )}
                             </div>
@@ -202,8 +202,8 @@ export function AIWritingPartner({
                                     <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
                                         {messages.length === 0 ? (
                                             <div className="text-center text-gray-400 text-sm py-12">
-                                                <p className="mb-1">你好！我会默默陪伴你写作</p>
-                                                <p className="text-xs text-gray-300">有问题随时问我~</p>
+                                                <p className="mb-1">Hi! I'm here to help with your writing</p>
+                                                <p className="text-xs text-gray-300">Feel free to ask me anything~</p>
                                             </div>
                                         ) : (
                                             messages.map((message) => (
@@ -234,7 +234,7 @@ export function AIWritingPartner({
                                                 value={inputValue}
                                                 onChange={(e) => setInputValue(e.target.value)}
                                                 onKeyPress={handleKeyPress}
-                                                placeholder="说点什么..."
+                                                placeholder="Say something..."
                                                 className="flex-1 bg-transparent text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none py-1"
                                                 disabled={isSending || isLoading}
                                             />

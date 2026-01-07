@@ -260,7 +260,7 @@ export function PublicPhotoDetailModal({
                     <div className="flex items-start gap-3">
                       <User className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-0.5" />
                       <div>
-                        <p className="text-sm text-muted-foreground mb-1">上传者</p>
+                        <p className="text-sm text-muted-foreground mb-1">Uploaded by</p>
                         <p className="text-sm font-medium">{photo.userName}</p>
                       </div>
                     </div>
@@ -305,7 +305,7 @@ export function PublicPhotoDetailModal({
                       <div className="flex items-start gap-3">
                         <FileText className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-0.5" />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm text-muted-foreground mb-2">照片说明</p>
+                          <p className="text-sm text-muted-foreground mb-2">Photo Description</p>
                           <div className="text-sm p-3 bg-muted rounded-md prose prose-sm max-w-none">
                             <p className="whitespace-pre-wrap">
                               {extractTextFromJSON(photo.description)}
@@ -319,7 +319,7 @@ export function PublicPhotoDetailModal({
                       <div className="flex items-start gap-3">
                         <FileText className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-0.5" />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm text-muted-foreground mb-2">照片说明</p>
+                          <p className="text-sm text-muted-foreground mb-2">Photo Description</p>
                           <p className="text-sm text-muted-foreground italic">No description yet</p>
                         </div>
                       </div>

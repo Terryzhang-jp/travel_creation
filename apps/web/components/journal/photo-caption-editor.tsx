@@ -61,7 +61,7 @@ const PhotoCaptionEditor = ({
   initialDescription,
   onSave,
 }: PhotoCaptionEditorProps) => {
-  const [saveStatus, setSaveStatus] = useState('已保存');
+  const [saveStatus, setSaveStatus] = useState('Saved');
   const [charsCount, setCharsCount] = useState<number>();
   const [showFullImage, setShowFullImage] = useState(false);
 
@@ -90,10 +90,10 @@ const PhotoCaptionEditor = ({
 
       try {
         await onSave(photoId, json);
-        setSaveStatus('已保存');
+        setSaveStatus('Saved');
       } catch (error) {
         console.error('Failed to save photo description:', error);
-        setSaveStatus('保存失败');
+        setSaveStatus('Save failed');
       }
     },
     500
@@ -104,9 +104,9 @@ const PhotoCaptionEditor = ({
     return (
       <div className="flex h-full items-center justify-center">
         <div className="text-center">
-          <p className="text-lg text-muted-foreground mb-2">未选择照片</p>
+          <p className="text-lg text-muted-foreground mb-2">No photo selected</p>
           <p className="text-sm text-muted-foreground">
-            从左侧选择一张照片来编辑说明
+            Select a photo from the left to edit its description
           </p>
         </div>
       </div>

@@ -92,12 +92,12 @@ export function LocationPhotosModal({
               </div>
 
               <h2 className="text-3xl font-bold text-foreground mb-2">
-                该位置的所有照片
+                All photos at this location
               </h2>
 
               <p className="text-muted-foreground flex items-center justify-center gap-2">
                 <ImageIcon className="w-4 h-4" />
-                共 {photoCount} 张照片
+                {photoCount} photo{photoCount !== 1 ? 's' : ''}
               </p>
             </div>
 
@@ -145,7 +145,7 @@ export function LocationPhotosModal({
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
                           <Calendar className="w-3 h-3" />
                           <span>
-                            {new Date(photoDateTime).toLocaleDateString('zh-CN', {
+                            {new Date(photoDateTime).toLocaleDateString('en-US', {
                               year: 'numeric',
                               month: 'long',
                               day: 'numeric',
@@ -171,7 +171,7 @@ export function LocationPhotosModal({
                     {/* Click Hint (on hover) */}
                     <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
                       <div className="px-4 py-2 bg-white/90 dark:bg-black/90 rounded-full text-sm font-semibold shadow-lg">
-                        点击查看详情
+                        Click to view details
                       </div>
                     </div>
                   </div>
@@ -183,7 +183,7 @@ export function LocationPhotosModal({
             {photoCount === 0 && (
               <div className="text-center py-20">
                 <ImageIcon className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">该位置没有照片</p>
+                <p className="text-muted-foreground">No photos at this location</p>
               </div>
             )}
           </div>

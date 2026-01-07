@@ -299,8 +299,8 @@ function InfiniteCanvas() {
       // 文件大小限制：10MB
       const maxSizeBytes = 10 * 1024 * 1024;
       if (file.size > maxSizeBytes) {
-        toast.error("图片文件太大", {
-          description: `最大支持 10MB，当前文件 ${(file.size / 1024 / 1024).toFixed(1)}MB`,
+        toast.error("Image file too large", {
+          description: `Maximum 10MB, current file ${(file.size / 1024 / 1024).toFixed(1)}MB`,
         });
         e.target.value = "";
         return;
@@ -309,8 +309,8 @@ function InfiniteCanvas() {
       // 检查文件类型
       const validTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
       if (!validTypes.includes(file.type)) {
-        toast.error("不支持的图片格式", {
-          description: "请使用 JPG、PNG、GIF 或 WebP 格式",
+        toast.error("Unsupported image format", {
+          description: "Please use JPG, PNG, GIF or WebP format",
         });
         e.target.value = "";
         return;

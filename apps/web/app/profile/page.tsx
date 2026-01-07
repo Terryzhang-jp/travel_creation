@@ -178,12 +178,12 @@ export default function ProfilePage() {
 
     // Validate passwords
     if (newPassword.length < 6) {
-      setPasswordError('新密码至少需要 6 个字符');
+      setPasswordError('New password must be at least 6 characters');
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setPasswordError('两次输入的新密码不匹配');
+      setPasswordError('New passwords do not match');
       return;
     }
 
@@ -205,17 +205,17 @@ export default function ProfilePage() {
       const data = await response.json();
 
       if (response.ok) {
-        setPasswordSuccess('密码修改成功！');
+        setPasswordSuccess('Password changed successfully!');
         setCurrentPassword('');
         setNewPassword('');
         setConfirmPassword('');
         // Clear success message after 3 seconds
         setTimeout(() => setPasswordSuccess(''), 3000);
       } else {
-        setPasswordError(data.error || '密码修改失败');
+        setPasswordError(data.error || 'Failed to change password');
       }
     } catch (err) {
-      setPasswordError('发生错误，请重试');
+      setPasswordError('An error occurred, please try again');
     } finally {
       setPasswordLoading(false);
     }
@@ -227,7 +227,7 @@ export default function ProfilePage() {
         <div className="min-h-screen bg-background flex items-center justify-center">
           <div className="text-center">
             <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto mb-4" />
-            <p className="text-muted-foreground">加载个人资料...</p>
+            <p className="text-muted-foreground">Loading profile...</p>
           </div>
         </div>
       </AppLayout>
@@ -239,13 +239,13 @@ export default function ProfilePage() {
       <AppLayout>
         <div className="min-h-screen bg-background flex items-center justify-center">
           <div className="text-center">
-            <p className="text-destructive mb-4">{error || '无法加载个人资料'}</p>
+            <p className="text-destructive mb-4">{error || 'Unable to load profile'}</p>
             <button
               type="button"
               onClick={() => window.location.reload()}
               className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
             >
-              重试
+              Retry
             </button>
           </div>
         </div>
@@ -265,10 +265,10 @@ export default function ProfilePage() {
                 className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
               >
                 <ArrowLeft className="w-4 h-4" />
-                <span>返回相册</span>
+                <span>Back to Gallery</span>
               </Link>
               <div className="flex-1">
-                <h1 className="text-2xl font-bold">个人主页</h1>
+                <h1 className="text-2xl font-bold">Profile</h1>
               </div>
             </div>
           </div>

@@ -78,7 +78,7 @@ function CanvasTopToolbarComponent({
         <button
           onClick={() => window.history.back()}
           className="p-2 hover:bg-gray-100 rounded-xl transition-all duration-200 text-gray-500 hover:text-gray-700"
-          title="返回"
+          title="Back"
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
@@ -96,13 +96,13 @@ function CanvasTopToolbarComponent({
             icon={<Undo className="w-4 h-4" />}
             onClick={undo}
             disabled={!canUndo()}
-            title="撤销 (Ctrl+Z)"
+            title="Undo (Ctrl+Z)"
           />
           <IconButton
             icon={<Redo className="w-4 h-4" />}
             onClick={redo}
             disabled={!canRedo()}
-            title="重做 (Ctrl+Shift+Z)"
+            title="Redo (Ctrl+Shift+Z)"
           />
         </div>
 
@@ -114,13 +114,13 @@ function CanvasTopToolbarComponent({
             icon={<MousePointer className="w-4 h-4" />}
             active={tool === "select"}
             onClick={() => handleToolChange("select")}
-            title="选择 (V)"
+            title="Select (V)"
           />
           <ToolButton
             icon={<Hand className="w-4 h-4" />}
             active={tool === "pan"}
             onClick={() => handleToolChange("pan")}
-            title="拖动 (Space)"
+            title="Pan (Space)"
           />
         </div>
 
@@ -129,7 +129,7 @@ function CanvasTopToolbarComponent({
           icon={<CircleDot className="w-4 h-4" />}
           onClick={toggleGrid}
           active={showGrid}
-          title={showGrid ? "隐藏网格" : "显示网格"}
+          title={showGrid ? "Hide grid" : "Show grid"}
         />
 
         <Divider />
@@ -139,7 +139,7 @@ function CanvasTopToolbarComponent({
           {/* 相册 */}
           <CreativeToolButton
             icon={<Images className="w-4 h-4" />}
-            label="相册"
+            label="Gallery"
             onClick={() => setShowPhotoSidebar(!showPhotoSidebar)}
             active={showPhotoSidebar}
             gradient="from-blue-500 to-cyan-500"
@@ -148,7 +148,7 @@ function CanvasTopToolbarComponent({
           {/* 上传 */}
           <CreativeToolButton
             icon={<ImageIcon className="w-4 h-4" />}
-            label="上传"
+            label="Upload"
             onClick={onAddPhoto}
             gradient="from-emerald-500 to-teal-500"
           />
@@ -156,7 +156,7 @@ function CanvasTopToolbarComponent({
           {/* 贴纸 */}
           <CreativeToolButton
             icon={<Smile className="w-4 h-4" />}
-            label="贴纸"
+            label="Sticker"
             onClick={onToggleStickerPicker}
             active={showStickerPicker}
             gradient="from-amber-500 to-orange-500"
@@ -165,7 +165,7 @@ function CanvasTopToolbarComponent({
           {/* 文字 */}
           <CreativeToolButton
             icon={<Type className="w-4 h-4" />}
-            label="文字"
+            label="Text"
             onClick={onAddText}
             gradient="from-pink-500 to-rose-500"
           />
@@ -173,7 +173,7 @@ function CanvasTopToolbarComponent({
           {/* 文档 */}
           <CreativeToolButton
             icon={<FileText className="w-4 h-4" />}
-            label="文档"
+            label="Doc"
             onClick={onOpenDocumentPicker}
             active={showDocumentPicker}
             gradient="from-indigo-500 to-blue-500"
@@ -299,20 +299,20 @@ function SaveStatusIndicator({ status }: SaveStatusIndicatorProps) {
       icon: Loader2,
       color: "text-blue-600",
       bgColor: "bg-blue-50",
-      text: "保存中",
+      text: "Saving",
       spin: true,
     },
     saved: {
       icon: Cloud,
       color: "text-emerald-600",
       bgColor: "bg-emerald-50",
-      text: "已保存",
+      text: "Saved",
     },
     error: {
       icon: CloudOff,
       color: "text-red-600",
       bgColor: "bg-red-50",
-      text: "保存失败",
+      text: "Save failed",
     },
   };
 
@@ -322,7 +322,7 @@ function SaveStatusIndicator({ status }: SaveStatusIndicatorProps) {
     return (
       <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-gray-50 text-gray-400">
         <Cloud className="w-3.5 h-3.5" />
-        <span className="text-xs">自动保存</span>
+        <span className="text-xs">Auto save</span>
       </div>
     );
   }

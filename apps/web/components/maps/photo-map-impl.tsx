@@ -119,9 +119,9 @@ function MapFocusController({
  * Format date for display
  */
 function formatDate(dateString?: string): string {
-  if (!dateString) return '未知时间';
+  if (!dateString) return 'Unknown time';
   const date = new Date(dateString);
-  return date.toLocaleDateString('zh-CN', {
+  return date.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
@@ -267,7 +267,7 @@ export function PhotoMapImpl({
                   />
                   {index === 0 && (
                     <div className="absolute top-1 left-1 px-1.5 py-0.5 bg-black/50 text-white text-[10px] font-medium rounded">
-                      主图
+                      Main
                     </div>
                   )}
                 </button>
@@ -317,7 +317,7 @@ export function PhotoMapImpl({
             onClick={() => onLocationClick?.(location)}
             className="w-full mt-2 px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary text-xs font-medium rounded transition-colors"
           >
-            查看详情 →
+            View details →
           </button>
         </div>
       </div>

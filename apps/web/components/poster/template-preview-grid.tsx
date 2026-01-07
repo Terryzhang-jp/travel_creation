@@ -46,12 +46,12 @@ export function TemplatePreviewGrid({
       <div className="flex items-center justify-between p-8 bg-gradient-to-r from-card to-card/80 border border-border/50 rounded-2xl shadow-lg backdrop-blur-sm">
         <div className="space-y-1">
           <h3 className="text-2xl font-bold text-foreground tracking-tight">
-            选择你喜欢的模板
+            Choose your favorite templates
           </h3>
           <p className="text-sm text-muted-foreground">
-            已选择 <span className="font-bold text-primary text-base">{selectedTemplates.length}</span>
+            Selected <span className="font-bold text-primary text-base">{selectedTemplates.length}</span>
             <span className="mx-1.5">/</span>
-            <span className="font-medium">{POSTER_TEMPLATES.length}</span> 个模板
+            <span className="font-medium">{POSTER_TEMPLATES.length}</span> templates
           </p>
         </div>
         <button
@@ -65,7 +65,7 @@ export function TemplatePreviewGrid({
           }}
         >
           <span className="relative z-10 text-white">
-            {isAllSelected ? '取消全选' : '全选模板'}
+            {isAllSelected ? 'Deselect All' : 'Select All'}
           </span>
           <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
         </button>
@@ -98,12 +98,12 @@ interface TemplateCardProps {
 
 function TemplateCard({ template, isSelected, onToggle, onClick, posterData }: TemplateCardProps) {
   const styleLabels: Record<string, string> = {
-    minimal: '极简',
-    vintage: '复古',
-    modern: '现代',
-    artistic: '艺术',
-    casual: '休闲',
-    professional: '专业',
+    minimal: 'Minimal',
+    vintage: 'Vintage',
+    modern: 'Modern',
+    artistic: 'Artistic',
+    casual: 'Casual',
+    professional: 'Professional',
   };
   const styleLabel = styleLabels[template.style] ?? template.style;
 
@@ -206,7 +206,7 @@ function TemplateCard({ template, isSelected, onToggle, onClick, posterData }: T
           {isSelected && (
             <div className="flex items-center gap-1.5 text-xs font-semibold text-primary">
               <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
-              <span>已选择</span>
+              <span>Selected</span>
             </div>
           )}
         </div>

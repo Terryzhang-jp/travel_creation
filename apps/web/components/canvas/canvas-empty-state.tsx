@@ -26,14 +26,14 @@ interface CanvasEmptyStateProps {
   onOpenAiMagic: () => void;
 }
 
-// 灵感提示语
+// Inspiration prompts
 const INSPIRATIONS = [
-  "记录今天的美好瞬间 ✨",
-  "用照片讲述你的故事 📸",
-  "写下此刻的心情 💭",
-  "创作属于你的手账 🎨",
-  "让回忆变得更有温度 🌸",
-  "每一页都是独特的风景 🌈",
+  "Capture today's beautiful moments ✨",
+  "Tell your story with photos 📸",
+  "Write down your thoughts 💭",
+  "Create your own journal 🎨",
+  "Make memories more meaningful 🌸",
+  "Every page is a unique landscape 🌈",
 ];
 
 function CanvasEmptyStateComponent({
@@ -63,7 +63,7 @@ function CanvasEmptyStateComponent({
 
         {/* 主标题 */}
         <h2 className="text-2xl font-semibold text-gray-800 mb-3">
-          开始创作
+          Start Creating
         </h2>
 
         {/* 灵感提示 */}
@@ -75,29 +75,29 @@ function CanvasEmptyStateComponent({
         <div className="grid grid-cols-2 gap-4 mb-8">
           <CreativeButton
             icon={<ImageIcon className="w-6 h-6" />}
-            label="添加照片"
-            description="从相册选择"
+            label="Add Photo"
+            description="From gallery"
             onClick={onAddPhoto}
             gradient="from-blue-400 to-cyan-400"
           />
           <CreativeButton
             icon={<Type className="w-6 h-6" />}
-            label="添加文字"
-            description="写下想法"
+            label="Add Text"
+            description="Write your thoughts"
             onClick={onAddText}
             gradient="from-emerald-400 to-teal-400"
           />
           <CreativeButton
             icon={<Smile className="w-6 h-6" />}
-            label="添加贴纸"
-            description="表情装饰"
+            label="Add Sticker"
+            description="Emoji decorations"
             onClick={onAddSticker}
             gradient="from-amber-400 to-orange-400"
           />
           <CreativeButton
             icon={<Sparkles className="w-6 h-6" />}
-            label="AI 魔法"
-            description="智能生成"
+            label="AI Magic"
+            description="Smart generation"
             onClick={onOpenAiMagic}
             gradient="from-violet-400 to-purple-400"
           />
@@ -106,12 +106,12 @@ function CanvasEmptyStateComponent({
         {/* 操作提示 */}
         <div className="flex items-center justify-center gap-6 text-xs text-gray-400">
           <span className="flex items-center gap-1">
-            <kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-[10px]">滚轮</kbd>
-            缩放
+            <kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-[10px]">Scroll</kbd>
+            Zoom
           </span>
           <span className="flex items-center gap-1">
             <kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-[10px]">Space</kbd>
-            拖动画布
+            Pan canvas
           </span>
         </div>
       </div>

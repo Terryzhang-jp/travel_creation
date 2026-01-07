@@ -158,9 +158,9 @@ function groupPhotos(photos: PublicPhotoIndex[], groupBy: GroupBy): PhotoGroup[]
  * Format date for display
  */
 function formatDate(dateString?: string): string {
-  if (!dateString) return '未知时间';
+  if (!dateString) return 'Unknown time';
   const date = new Date(dateString);
-  return date.toLocaleDateString('zh-CN', {
+  return date.toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
     hour: '2-digit',

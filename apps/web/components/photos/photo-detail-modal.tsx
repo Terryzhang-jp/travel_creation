@@ -177,7 +177,7 @@ export function PhotoDetailModal({
             disabled={isDownloading}
             className="p-2 bg-card border border-border rounded-full hover:bg-accent transition-colors disabled:opacity-50"
             aria-label="Download photo"
-            title="下载照片"
+            title="Download photo"
           >
             {isDownloading ? (
               <Loader2 className="w-6 h-6 animate-spin" />
@@ -196,7 +196,7 @@ export function PhotoDetailModal({
             }}
             className="p-2 bg-card border border-border rounded-full hover:bg-accent transition-colors"
             aria-label="Generate poster"
-            title="生成海报"
+            title="Generate poster"
           >
             <FileImage className="w-6 h-6" />
           </button>
@@ -211,7 +211,7 @@ export function PhotoDetailModal({
             }}
             className="p-2 bg-card border border-border rounded-full hover:bg-accent transition-colors"
             aria-label="Edit photo"
-            title="编辑照片"
+            title="Edit photo"
           >
             <Edit2 className="w-6 h-6" />
           </button>
@@ -356,7 +356,7 @@ export function PhotoDetailModal({
                     <div className="flex items-start gap-3">
                       <FileText className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-0.5" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm text-muted-foreground mb-2">照片说明</p>
+                        <p className="text-sm text-muted-foreground mb-2">Photo Description</p>
 
                         {!isJSONContentEmpty(photo.description) ? (
                           <>
@@ -373,14 +373,14 @@ export function PhotoDetailModal({
                               className="inline-flex items-center gap-2 text-sm text-primary hover:text-primary/80 transition-colors"
                             >
                               <BookOpen className="w-4 h-4" />
-                              <span>在日记中查看完整说明</span>
+                              <span>View full description in Journal</span>
                             </Link>
                           </>
                         ) : (
                           <>
                             {/* No Description */}
                             <p className="text-sm text-muted-foreground mb-3">
-                              还没有添加说明
+                              No description added yet
                             </p>
 
                             {/* Add Description Button */}
@@ -389,7 +389,7 @@ export function PhotoDetailModal({
                               className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary text-primary-foreground rounded-md text-sm hover:bg-primary/90 transition-colors"
                             >
                               <BookOpen className="w-4 h-4" />
-                              <span>添加说明</span>
+                              <span>Add description</span>
                             </Link>
                           </>
                         )}
