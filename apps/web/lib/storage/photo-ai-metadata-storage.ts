@@ -93,7 +93,8 @@ export class PhotoAiMetadataStorage {
   async findByPhotoId(photoId: string): Promise<PhotoAiMetadata | null> {
     const { getDatabaseAdapter } = await import('@/lib/adapters/database');
     const db = await getDatabaseAdapter();
-    return db.photoAiMetadata.findByPhotoId(photoId);
+    const row = await db.photoAiMetadata.findByPhotoId(photoId);
+    return row ? (row as unknown as PhotoAiMetadata) : null;
   }
 
   /**
@@ -102,7 +103,8 @@ export class PhotoAiMetadataStorage {
   async findByUserId(userId: string): Promise<PhotoAiMetadata[]> {
     const { getDatabaseAdapter } = await import('@/lib/adapters/database');
     const db = await getDatabaseAdapter();
-    return db.photoAiMetadata.findByUserId(userId);
+    const rows = await db.photoAiMetadata.findByUserId(userId);
+    return rows as unknown as PhotoAiMetadata[];
   }
 
   /**
@@ -112,11 +114,8 @@ export class PhotoAiMetadataStorage {
     const { getDatabaseAdapter } = await import('@/lib/adapters/database');
     const db = await getDatabaseAdapter();
 
-    const now = new Date().toISOString();
-    return db.photoAiMetadata.update(id, {
-      ...input,
-      updatedAt: now,
-    });
+    const row = await db.photoAiMetadata.update(id, input);
+    return row as unknown as PhotoAiMetadata;
   }
 
   /**
@@ -125,7 +124,8 @@ export class PhotoAiMetadataStorage {
   async findPending(userId: string, limit: number = 50): Promise<PhotoAiMetadata[]> {
     const { getDatabaseAdapter } = await import('@/lib/adapters/database');
     const db = await getDatabaseAdapter();
-    return db.photoAiMetadata.findByStatus(userId, 'pending', limit);
+    const rows = await db.photoAiMetadata.findByStatus(userId, 'pending', limit);
+    return rows as unknown as PhotoAiMetadata[];
   }
 
   /**
@@ -149,7 +149,14 @@ export class PhotoAiMetadataStorage {
   }> {
     const { getDatabaseAdapter } = await import('@/lib/adapters/database');
     const db = await getDatabaseAdapter();
-    return db.photoAiMetadata.getStats(userId);
+    const stats = await db.photoAiMetadata.getStats(userId);
+    return {
+      total: stats.total,
+      pending: stats.pending,
+      processing: stats.processing,
+      completed: stats.completed,
+      failed: stats.failed,
+    };
   }
 
   /**

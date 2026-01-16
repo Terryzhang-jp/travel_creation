@@ -22,6 +22,7 @@ import type {
   CanvasElement,
   MagazinePage,
 } from '@/types/storage';
+import type { PhotoAiMetadataRow } from './drizzle/schema';
 
 // ============================================
 // Common Types
@@ -234,6 +235,69 @@ export interface CreatePhotoEmbeddingInput {
 }
 
 // ============================================
+// Photo AI Metadata Types
+// ============================================
+
+/**
+ * AI-generated tags structure
+ */
+export interface PhotoAiTags {
+  scene: string[];       // 场景类型
+  mood: string[];        // 氛围情绪
+  lighting: string[];    // 时间光线
+  color: string[];       // 色彩基调
+  subject: string[];     // 内容主体
+  composition: string[]; // 构图风格
+  usage: string[];       // 创作适用
+  extra: string[];       // 补充标签
+}
+
+/**
+ * Input for creating photo AI metadata
+ */
+export interface PhotoAiMetadataInput {
+  id?: string;
+  photoId: string;
+  userId: string;
+  tags: PhotoAiTags;
+  description: string;
+  status?: 'pending' | 'processing' | 'completed' | 'failed';
+  model?: string;
+  errorMessage?: string;
+  processedAt?: string;
+}
+
+/**
+ * Search options for photo AI metadata
+ */
+export interface PhotoAiMetadataSearchOptions {
+  userId: string;
+  /** Search query for description */
+  query?: string;
+  /** Filter by specific tag dimension and values */
+  tagFilters?: {
+    dimension: keyof PhotoAiTags;
+    values: string[];
+  }[];
+  /** Filter by status */
+  status?: string;
+  /** Pagination */
+  limit?: number;
+  offset?: number;
+}
+
+/**
+ * Statistics for photo AI metadata
+ */
+export interface PhotoAiMetadataStats {
+  total: number;
+  pending: number;
+  processing: number;
+  completed: number;
+  failed: number;
+}
+
+// ============================================
 // Database Adapter Interface
 // ============================================
 
@@ -354,6 +418,21 @@ export interface DatabaseAdapter {
     findByUserId(userId: string): Promise<PhotoEmbedding[]>;
     findByPhotoId(photoId: string): Promise<PhotoEmbedding | null>;
     delete(photoId: string): Promise<void>;
+  };
+
+  // ----------------------------------------
+  // Photo AI Metadata Operations
+  // ----------------------------------------
+  photoAiMetadata: {
+    create(metadata: PhotoAiMetadataInput): Promise<PhotoAiMetadataRow>;
+    findByPhotoId(photoId: string): Promise<PhotoAiMetadataRow | null>;
+    findByUserId(userId: string): Promise<PhotoAiMetadataRow[]>;
+    findByStatus(userId: string, status: string, limit?: number): Promise<PhotoAiMetadataRow[]>;
+    update(id: string, data: Partial<PhotoAiMetadataInput>): Promise<PhotoAiMetadataRow>;
+    search(options: PhotoAiMetadataSearchOptions): Promise<{ photoIds: string[]; total: number }>;
+    getStats(userId: string): Promise<PhotoAiMetadataStats>;
+    delete(id: string): Promise<void>;
+    deleteByPhotoId(photoId: string): Promise<void>;
   };
 }
 

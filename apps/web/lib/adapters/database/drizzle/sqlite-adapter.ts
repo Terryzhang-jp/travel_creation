@@ -37,6 +37,9 @@ import type {
   CreateAiMagicHistoryInput,
   PhotoEmbedding,
   CreatePhotoEmbeddingInput,
+  PhotoAiMetadataInput,
+  PhotoAiMetadataSearchOptions,
+  PhotoAiMetadataStats,
 } from '../types';
 import { DatabaseAdapterError } from '../types';
 import * as schema from './schema';
@@ -1356,6 +1359,176 @@ export class DrizzleSqliteAdapter implements DatabaseAdapter {
 
     delete: async (photoId: string): Promise<void> => {
       await this.db.delete(schema.photoEmbeddings).where(eq(schema.photoEmbeddings.photoId, photoId));
+    },
+  };
+
+  // ----------------------------------------
+  // Photo AI Metadata Operations
+  // ----------------------------------------
+
+  photoAiMetadata = {
+    create: async (data: PhotoAiMetadataInput): Promise<schema.PhotoAiMetadataRow> => {
+      const now = new Date().toISOString();
+      const id = data.id || crypto.randomUUID();
+
+      const row = {
+        id,
+        photoId: data.photoId,
+        userId: data.userId,
+        tags: data.tags,
+        description: data.description,
+        status: data.status || 'pending',
+        model: data.model || null,
+        errorMessage: data.errorMessage || null,
+        processedAt: data.processedAt || null,
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      await this.db.insert(schema.photoAiMetadata).values(row);
+
+      return row as schema.PhotoAiMetadataRow;
+    },
+
+    findByPhotoId: async (photoId: string): Promise<schema.PhotoAiMetadataRow | null> => {
+      const rows = await this.db.select().from(schema.photoAiMetadata)
+        .where(eq(schema.photoAiMetadata.photoId, photoId))
+        .limit(1);
+      return rows[0] || null;
+    },
+
+    findByUserId: async (userId: string): Promise<schema.PhotoAiMetadataRow[]> => {
+      const rows = await this.db.select().from(schema.photoAiMetadata)
+        .where(eq(schema.photoAiMetadata.userId, userId))
+        .orderBy(desc(schema.photoAiMetadata.createdAt));
+      return rows;
+    },
+
+    findByStatus: async (userId: string, status: string, limit?: number): Promise<schema.PhotoAiMetadataRow[]> => {
+      let query = this.db.select().from(schema.photoAiMetadata)
+        .where(and(
+          eq(schema.photoAiMetadata.userId, userId),
+          eq(schema.photoAiMetadata.status, status)
+        ))
+        .orderBy(asc(schema.photoAiMetadata.createdAt));
+
+      if (limit) {
+        query = query.limit(limit) as typeof query;
+      }
+
+      return await query;
+    },
+
+    update: async (id: string, data: Partial<PhotoAiMetadataInput>): Promise<schema.PhotoAiMetadataRow> => {
+      const now = new Date().toISOString();
+
+      const updateData: Record<string, unknown> = { updatedAt: now };
+      if (data.tags !== undefined) updateData.tags = data.tags;
+      if (data.description !== undefined) updateData.description = data.description;
+      if (data.status !== undefined) updateData.status = data.status;
+      if (data.model !== undefined) updateData.model = data.model;
+      if (data.errorMessage !== undefined) updateData.errorMessage = data.errorMessage;
+      if (data.processedAt !== undefined) updateData.processedAt = data.processedAt;
+
+      await this.db.update(schema.photoAiMetadata)
+        .set(updateData)
+        .where(eq(schema.photoAiMetadata.id, id));
+
+      const rows = await this.db.select().from(schema.photoAiMetadata)
+        .where(eq(schema.photoAiMetadata.id, id))
+        .limit(1);
+
+      if (!rows[0]) {
+        throw new DatabaseAdapterError('Photo AI metadata not found after update', 'NOT_FOUND');
+      }
+      return rows[0];
+    },
+
+    search: async (options: PhotoAiMetadataSearchOptions): Promise<{ photoIds: string[]; total: number }> => {
+      const conditions = [eq(schema.photoAiMetadata.userId, options.userId)];
+
+      // Filter by status
+      if (options.status) {
+        conditions.push(eq(schema.photoAiMetadata.status, options.status));
+      }
+
+      // Filter by description query
+      if (options.query) {
+        conditions.push(like(schema.photoAiMetadata.description, `%${options.query}%`));
+      }
+
+      // Build base query for counting
+      const countResult = await this.db.select({ count: sql<number>`count(*)` })
+        .from(schema.photoAiMetadata)
+        .where(and(...conditions));
+
+      let total = countResult[0]?.count || 0;
+
+      // Build main query
+      let query = this.db.select({ photoId: schema.photoAiMetadata.photoId, tags: schema.photoAiMetadata.tags })
+        .from(schema.photoAiMetadata)
+        .where(and(...conditions))
+        .orderBy(desc(schema.photoAiMetadata.createdAt));
+
+      if (options.limit) {
+        query = query.limit(options.limit) as typeof query;
+      }
+      if (options.offset) {
+        query = query.offset(options.offset) as typeof query;
+      }
+
+      const rows = await query;
+
+      // Filter by tag dimensions in application layer (SQLite JSON handling)
+      let filteredRows = rows;
+      if (options.tagFilters && options.tagFilters.length > 0) {
+        filteredRows = rows.filter(row => {
+          const tags = row.tags as Record<string, string[]>;
+          return options.tagFilters!.every(filter => {
+            const dimensionTags = tags[filter.dimension] || [];
+            return filter.values.some(v => dimensionTags.includes(v));
+          });
+        });
+        total = filteredRows.length;
+      }
+
+      return {
+        photoIds: filteredRows.map(row => row.photoId),
+        total,
+      };
+    },
+
+    getStats: async (userId: string): Promise<PhotoAiMetadataStats> => {
+      const statuses = ['pending', 'processing', 'completed', 'failed'] as const;
+      const stats: PhotoAiMetadataStats = {
+        total: 0,
+        pending: 0,
+        processing: 0,
+        completed: 0,
+        failed: 0,
+      };
+
+      for (const status of statuses) {
+        const result = await this.db.select({ count: sql<number>`count(*)` })
+          .from(schema.photoAiMetadata)
+          .where(and(
+            eq(schema.photoAiMetadata.userId, userId),
+            eq(schema.photoAiMetadata.status, status)
+          ));
+        const count = result[0]?.count || 0;
+        stats[status] = count;
+        stats.total += count;
+      }
+
+      return stats;
+    },
+
+    delete: async (id: string): Promise<void> => {
+      await this.db.delete(schema.photoAiMetadata).where(eq(schema.photoAiMetadata.id, id));
+    },
+
+    deleteByPhotoId: async (photoId: string): Promise<void> => {
+      await this.db.delete(schema.photoAiMetadata).where(eq(schema.photoAiMetadata.photoId, photoId));
     },
   };
 
