@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Upload, Trash2, X, MapPin, Zap, ArrowUpDown, Wand2, Download, Loader2 } from "lucide-react";
+import { Upload, Trash2, X, MapPin, Zap, ArrowUpDown, Wand2, Download, Loader2, Sparkles, Search } from "lucide-react";
 import { toast } from "sonner";
 import type { Photo, PhotoCategory, PhotoStats, Location } from "@/types/storage";
 import { CategoryFilter } from "@/components/gallery/category-filter";
@@ -17,6 +17,9 @@ import { AppLayout } from "@/components/layout/app-layout";
 import { ClusterSection } from "@/components/gallery/cluster-section";
 import { ClusterSettings } from "@/components/gallery/cluster-settings";
 import { MagazineView } from '@/components/gallery/magazine-view';
+import { AISearchBar } from "@/components/gallery/ai-search-bar";
+import { AIProcessPanel } from "@/components/gallery/ai-process-panel";
+import { TagCloud } from "@/components/gallery/tag-cloud";
 import {
   clusterPhotosByTime,
   DEFAULT_CLUSTER_THRESHOLD,
@@ -63,10 +66,18 @@ export default function GalleryPage() {
   // 批量删除确认
   const [showBatchDeleteConfirm, setShowBatchDeleteConfirm] = useState(false);
 
+  // AI Search state
+  const [isSearchMode, setIsSearchMode] = useState(false);
+  const [searchResults, setSearchResults] = useState<Photo[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [popularTags, setPopularTags] = useState<Array<{ tag: string; count: number; dimension?: string }>>([]);
+  const [showAIPanel, setShowAIPanel] = useState(false);
+
   // 初始加载
   useEffect(() => {
     fetchPhotos(true);
     fetchLocations();
+    fetchPopularTags();
   }, []);
 
   // 当分类改变时，重置并重新加载
@@ -155,6 +166,63 @@ export default function GalleryPage() {
     } catch (error) {
       console.error("Error fetching locations:", error);
     }
+  };
+
+  // 获取热门标签
+  const fetchPopularTags = async () => {
+    try {
+      const response = await fetch("/api/photos/ai-metadata/status");
+      if (!response.ok) return;
+
+      const data = await response.json();
+      if (data.popularTags) {
+        setPopularTags(data.popularTags);
+      }
+    } catch (error) {
+      console.error("Error fetching popular tags:", error);
+    }
+  };
+
+  // AI 搜索
+  const handleAISearch = async (query: string, tags: string[]) => {
+    if (!query && tags.length === 0) {
+      // 清空搜索，返回正常模式
+      setIsSearchMode(false);
+      setSearchResults([]);
+      return;
+    }
+
+    setIsSearching(true);
+    setIsSearchMode(true);
+
+    try {
+      const params = new URLSearchParams();
+      if (query) {
+        params.set("q", query);
+      }
+      if (tags.length > 0) {
+        params.set("tags", tags.join(","));
+      }
+
+      const response = await fetch(`/api/photos/search?${params.toString()}`);
+      if (!response.ok) {
+        throw new Error("Search failed");
+      }
+
+      const data = await response.json();
+      setSearchResults(data.photos || []);
+    } catch (error) {
+      console.error("Error searching photos:", error);
+      toast.error("Search failed. Please try again.");
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // 通过标签搜索
+  const handleTagClick = (tag: string) => {
+    handleAISearch("", [tag]);
   };
 
   // 移入回收站（用于快速删除模式）
@@ -424,12 +492,16 @@ export default function GalleryPage() {
 
   // 由于API已经按category过滤，photos就是过滤后的结果
   // 然后再根据selectedLocationId进行前端筛选
+  // 如果是搜索模式，使用搜索结果
   const filteredPhotos = useMemo(() => {
+    if (isSearchMode) {
+      return searchResults;
+    }
     if (selectedLocationId === "all") {
       return photos;
     }
     return photos.filter(photo => photo.locationId === selectedLocationId);
-  }, [photos, selectedLocationId]);
+  }, [photos, selectedLocationId, isSearchMode, searchResults]);
 
   /**
    * 计算每个location的照片数量
@@ -526,6 +598,15 @@ export default function GalleryPage() {
               <div className="flex items-center gap-2">
                 {!selectionMode ? (
                   <>
+                    {/* AI 功能按钮 */}
+                    <button
+                      onClick={() => setShowAIPanel(!showAIPanel)}
+                      className={`p-2 rounded-full transition-colors ${showAIPanel ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-accent'}`}
+                      title="AI Tag Generation"
+                    >
+                      <Sparkles className="w-5 h-5" />
+                    </button>
+
                     {/* 聚类设置 - Icon Only */}
                     <div className="p-2 hover:bg-accent rounded-full transition-colors cursor-pointer" title="Grouping Settings">
                       <ClusterSettings onChange={setClusterThreshold} />
@@ -655,89 +736,168 @@ export default function GalleryPage() {
               </div>
             </div>
 
-            {/* Filters Bar - Unified Scrollable Capsule Bar */}
-            <div className="mt-4 flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide mask-linear-fade">
-              {stats && (
-                <CategoryFilter
-                  stats={stats}
-                  selectedCategory={selectedCategory}
-                  onCategoryChange={setSelectedCategory}
-                />
-              )}
-
-              {/* Divider between categories and locations */}
-              {(selectedCategory === "time-location" || selectedCategory === "location-only" || selectedCategory === "all") &&
-                locations.length > 0 &&
-                Object.keys(photoCountByLocation).length > 0 && (
-                  <>
-                    <div className="h-6 w-px bg-border/50 mx-2 flex-shrink-0" />
-
-                    <LocationFilter
-                      locations={locations}
-                      selectedLocationId={selectedLocationId}
-                      onLocationChange={setSelectedLocationId}
-                      photoCountByLocation={photoCountByLocation}
-                    />
-                  </>
-                )}
+            {/* AI Search Bar */}
+            <div className="mt-4">
+              <AISearchBar
+                onSearch={handleAISearch}
+                placeholder="Search photos by AI description or tags..."
+              />
             </div>
+
+            {/* Filters Bar - Unified Scrollable Capsule Bar */}
+            {!isSearchMode && (
+              <div className="mt-4 flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide mask-linear-fade">
+                {stats && (
+                  <CategoryFilter
+                    stats={stats}
+                    selectedCategory={selectedCategory}
+                    onCategoryChange={setSelectedCategory}
+                  />
+                )}
+
+                {/* Divider between categories and locations */}
+                {(selectedCategory === "time-location" || selectedCategory === "location-only" || selectedCategory === "all") &&
+                  locations.length > 0 &&
+                  Object.keys(photoCountByLocation).length > 0 && (
+                    <>
+                      <div className="h-6 w-px bg-border/50 mx-2 flex-shrink-0" />
+
+                      <LocationFilter
+                        locations={locations}
+                        selectedLocationId={selectedLocationId}
+                        onLocationChange={setSelectedLocationId}
+                        photoCountByLocation={photoCountByLocation}
+                      />
+                    </>
+                  )}
+              </div>
+            )}
+
+            {/* Search Mode Indicator */}
+            {isSearchMode && (
+              <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
+                <Search className="w-4 h-4" />
+                <span>Showing {searchResults.length} search results</span>
+                <button
+                  onClick={() => {
+                    setIsSearchMode(false);
+                    setSearchResults([]);
+                  }}
+                  className="ml-2 text-primary hover:underline"
+                >
+                  Clear search
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Photo Clusters */}
+        {/* Main Content Area with AI Sidebar */}
         <div className="max-w-7xl mx-auto px-8 py-8">
-          {userId ? (
-            <>
-              {/* 渲染所有聚类组 */}
-              {photoClusters.map((cluster) => (
-                <ClusterSection
-                  key={`${cluster.id}-${sortOrder}`}
-                  cluster={cluster}
-                  userId={userId}
-                  onPhotoDelete={handlePhotoDelete}
-                  selectionMode={selectionMode}
-                  selectedPhotos={selectedPhotos}
-                  onPhotoToggle={togglePhotoSelection}
-                  onPhotoClick={handlePhotoClick}
-                />
-              ))}
-
-              {/* Loading More Indicator */}
-              {loadingMore && (
+          <div className={`flex gap-8 ${showAIPanel ? '' : ''}`}>
+            {/* Photo Clusters - Main Content */}
+            <div className={`${showAIPanel ? 'flex-1' : 'w-full'}`}>
+              {/* Search Loading Indicator */}
+              {isSearching && (
                 <div className="flex justify-center items-center py-8">
                   <div className="text-center">
                     <div className="inline-block w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-2" />
-                    <p className="text-sm text-muted-foreground">Loading more photos...</p>
+                    <p className="text-sm text-muted-foreground">Searching photos...</p>
                   </div>
                 </div>
               )}
 
-              {/* Intersection Observer Target */}
-              <div ref={loadMoreRef} className="h-20" />
+              {userId && !isSearching ? (
+                <>
+                  {/* 渲染所有聚类组 */}
+                  {photoClusters.map((cluster) => (
+                    <ClusterSection
+                      key={`${cluster.id}-${sortOrder}`}
+                      cluster={cluster}
+                      userId={userId}
+                      onPhotoDelete={handlePhotoDelete}
+                      selectionMode={selectionMode}
+                      selectedPhotos={selectedPhotos}
+                      onPhotoToggle={togglePhotoSelection}
+                      onPhotoClick={handlePhotoClick}
+                    />
+                  ))}
 
-              {/* No More Photos Indicator */}
-              {!hasMore && photos.length > 0 && (
-                <div className="flex justify-center items-center py-8">
-                  <p className="text-sm text-muted-foreground">You've reached the end</p>
+                  {/* Search No Results */}
+                  {isSearchMode && searchResults.length === 0 && (
+                    <div className="flex flex-col items-center justify-center py-20 text-center">
+                      <Search className="w-12 h-12 text-muted-foreground mb-4" />
+                      <h3 className="text-xl font-semibold text-foreground mb-2">No photos found</h3>
+                      <p className="text-muted-foreground mb-4">
+                        Try different search terms or tags
+                      </p>
+                      <button
+                        onClick={() => {
+                          setIsSearchMode(false);
+                          setSearchResults([]);
+                        }}
+                        className="text-primary hover:underline"
+                      >
+                        Clear search
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Loading More Indicator */}
+                  {loadingMore && !isSearchMode && (
+                    <div className="flex justify-center items-center py-8">
+                      <div className="text-center">
+                        <div className="inline-block w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-2" />
+                        <p className="text-sm text-muted-foreground">Loading more photos...</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Intersection Observer Target */}
+                  {!isSearchMode && <div ref={loadMoreRef} className="h-20" />}
+
+                  {/* No More Photos Indicator */}
+                  {!hasMore && photos.length > 0 && !isSearchMode && (
+                    <div className="flex justify-center items-center py-8">
+                      <p className="text-sm text-muted-foreground">You've reached the end</p>
+                    </div>
+                  )}
+                </>
+              ) : !isSearching ? (
+                <div className="flex flex-col items-center justify-center py-20 text-center">
+                  <div className="text-6xl mb-4">📷</div>
+                  <h3 className="text-xl font-semibold text-foreground mb-2">No photos yet</h3>
+                  <p className="text-muted-foreground mb-6">
+                    Upload your first photo to get started
+                  </p>
+                  <Link
+                    href="/gallery/upload"
+                    className="flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+                  >
+                    <Upload className="w-5 h-5" />
+                    <span>Upload Photo</span>
+                  </Link>
                 </div>
-              )}
-            </>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-20 text-center">
-              <div className="text-6xl mb-4">📷</div>
-              <h3 className="text-xl font-semibold text-foreground mb-2">No photos yet</h3>
-              <p className="text-muted-foreground mb-6">
-                Upload your first photo to get started
-              </p>
-              <Link
-                href="/gallery/upload"
-                className="flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
-              >
-                <Upload className="w-5 h-5" />
-                <span>Upload Photo</span>
-              </Link>
+              ) : null}
             </div>
-          )}
+
+            {/* AI Sidebar */}
+            {showAIPanel && (
+              <div className="w-80 flex-shrink-0 space-y-6">
+                {/* AI Process Panel */}
+                <AIProcessPanel />
+
+                {/* Tag Cloud */}
+                {popularTags.length > 0 && (
+                  <TagCloud
+                    tags={popularTags}
+                    onTagClick={handleTagClick}
+                    maxTags={30}
+                  />
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Magazine View Overlay */}

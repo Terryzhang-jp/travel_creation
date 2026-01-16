@@ -21,9 +21,28 @@ import { useRouter } from 'next/navigation';
 import { X, ChevronLeft, ChevronRight, Camera, Loader2, BookOpen, FileText, Edit2, FileImage, Download } from 'lucide-react';
 import { LocationAssignment } from './location-assignment';
 import { DateTimeAssignment } from './datetime-assignment';
+import { PhotoTags } from '@/components/gallery/photo-tags';
 import type { Photo } from '@/types/storage';
 import { extractTextFromJSON, isJSONContentEmpty } from '@/lib/utils/json-content';
 import { downloadPhoto } from '@/lib/utils/photo-download';
+
+interface AIMetadata {
+  id: string;
+  photoId: string;
+  tags: {
+    scene?: string[];
+    mood?: string[];
+    lighting?: string[];
+    color?: string[];
+    subject?: string[];
+    composition?: string[];
+    usage?: string[];
+    extra?: string[];
+  };
+  description?: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  errorMessage?: string;
+}
 
 interface PhotoDetailModalProps {
   isOpen: boolean;
@@ -57,6 +76,8 @@ export function PhotoDetailModal({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [aiMetadata, setAiMetadata] = useState<AIMetadata | null>(null);
+  const [isLoadingAI, setIsLoadingAI] = useState(false);
 
   /**
    * Fetch full photo details
@@ -85,12 +106,69 @@ export function PhotoDetailModal({
     }
   }, [photoId]);
 
+  /**
+   * Fetch AI metadata for photo
+   */
+  const fetchAIMetadata = useCallback(async () => {
+    if (!photoId) return;
+
+    setIsLoadingAI(true);
+
+    try {
+      const response = await fetch(`/api/photos/${photoId}/ai-metadata`);
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.exists && data.metadata) {
+          setAiMetadata(data.metadata);
+        } else {
+          setAiMetadata(null);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch AI metadata:', err);
+    } finally {
+      setIsLoadingAI(false);
+    }
+  }, [photoId]);
+
+  /**
+   * Regenerate AI tags for photo
+   */
+  const handleRegenerateAI = useCallback(async () => {
+    if (!photoId) return;
+
+    try {
+      const response = await fetch(`/api/photos/${photoId}/ai-metadata/generate`, {
+        method: 'POST',
+      });
+
+      if (response.ok) {
+        // Refresh AI metadata after generation
+        await fetchAIMetadata();
+      } else {
+        const errorData = await response.json();
+        console.error('Failed to regenerate AI tags:', errorData.error);
+      }
+    } catch (err) {
+      console.error('Failed to regenerate AI tags:', err);
+    }
+  }, [photoId, fetchAIMetadata]);
+
   // Fetch photo when photoId changes
   useEffect(() => {
     if (isOpen && photoId) {
       fetchPhoto();
+      fetchAIMetadata();
     }
-  }, [isOpen, photoId, fetchPhoto]);
+  }, [isOpen, photoId, fetchPhoto, fetchAIMetadata]);
+
+  // Reset state when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setAiMetadata(null);
+    }
+  }, [isOpen]);
 
   /**
    * Handle keyboard shortcuts
@@ -350,6 +428,23 @@ export function PhotoDetailModal({
                       onLocationChange={handleLocationChange}
                     />
                   </div>
+
+                  {/* AI Tags Section */}
+                  {isLoadingAI ? (
+                    <div className="p-4 bg-card border border-border rounded-lg">
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span className="text-sm">Loading AI tags...</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <PhotoTags
+                      tags={aiMetadata?.tags || {}}
+                      description={aiMetadata?.description}
+                      status={aiMetadata?.status || 'pending'}
+                      onRegenerate={handleRegenerateAI}
+                    />
+                  )}
 
                   {/* Photo Description / Caption */}
                   <div className="p-4 bg-card border border-border rounded-lg">
