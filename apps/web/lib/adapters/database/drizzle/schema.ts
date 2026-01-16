@@ -159,6 +159,100 @@ export const photoEmbeddings = sqliteTable('photo_embeddings', {
 });
 
 // ============================================
+// Login Logs Table (登录审计日志)
+// ============================================
+
+export const loginLogs = sqliteTable('login_logs', {
+  id: text('id').primaryKey(),
+  /** 用户 ID（来自 Better Auth user 表） */
+  userId: text('user_id'),
+  /** 用户邮箱（用于未登录成功时记录） */
+  email: text('email').notNull(),
+  /** 登录是否成功 */
+  success: integer('success', { mode: 'boolean' }).notNull(),
+  /** 登录方式: 'email' | 'google' | 'password-reset' */
+  method: text('method').notNull(),
+  /** 客户端 IP 地址 */
+  ipAddress: text('ip_address'),
+  /** User Agent */
+  userAgent: text('user_agent'),
+  /** 失败原因（如果失败） */
+  failureReason: text('failure_reason'),
+  /** 地理位置信息（可选，JSON格式） */
+  geoLocation: text('geo_location', { mode: 'json' }).$type<{
+    country?: string;
+    city?: string;
+    region?: string;
+  }>(),
+  /** 创建时间 */
+  createdAt: text('created_at').notNull(),
+});
+
+// ============================================
+// Login Attempts Table (登录失败尝试，用于账户锁定)
+// ============================================
+
+export const loginAttempts = sqliteTable('login_attempts', {
+  id: text('id').primaryKey(),
+  /** 标识符（通常是 email 或 IP） */
+  identifier: text('identifier').notNull(),
+  /** 标识符类型: 'email' | 'ip' */
+  identifierType: text('identifier_type').notNull(),
+  /** 失败次数 */
+  attemptCount: integer('attempt_count').notNull().default(0),
+  /** 第一次失败时间 */
+  firstAttemptAt: text('first_attempt_at').notNull(),
+  /** 最后一次失败时间 */
+  lastAttemptAt: text('last_attempt_at').notNull(),
+  /** 锁定到期时间（如果被锁定） */
+  lockedUntil: text('locked_until'),
+  /** 创建时间 */
+  createdAt: text('created_at').notNull(),
+  /** 更新时间 */
+  updatedAt: text('updated_at').notNull(),
+});
+
+// ============================================
+// Photo AI Metadata Table (AI 自动标签)
+// ============================================
+
+export const photoAiMetadata = sqliteTable('photo_ai_metadata', {
+  id: text('id').primaryKey(),
+  /** 关联照片 ID */
+  photoId: text('photo_id').notNull().unique().references(() => photos.id, { onDelete: 'cascade' }),
+  /** 用户 ID */
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+
+  /** AI 生成的标签 (JSON) */
+  tags: text('tags', { mode: 'json' }).$type<{
+    scene: string[];       // 场景类型
+    mood: string[];        // 氛围情绪
+    lighting: string[];    // 时间光线
+    color: string[];       // 色彩基调
+    subject: string[];     // 内容主体
+    composition: string[]; // 构图风格
+    usage: string[];       // 创作适用
+    extra: string[];       // 补充标签
+  }>().notNull(),
+
+  /** 自由描述 */
+  description: text('description').notNull(),
+
+  /** 处理状态 */
+  status: text('status').notNull().default('pending'), // 'pending' | 'processing' | 'completed' | 'failed'
+  /** 使用的模型 */
+  model: text('model'),
+  /** 错误信息 */
+  errorMessage: text('error_message'),
+  /** 处理完成时间 */
+  processedAt: text('processed_at'),
+
+  /** 时间戳 */
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+});
+
+// ============================================
 // Type exports for inference
 // ============================================
 
@@ -170,3 +264,6 @@ export type TripRow = typeof trips.$inferSelect;
 export type CanvasProjectRow = typeof canvasProjects.$inferSelect;
 export type AiMagicHistoryRow = typeof aiMagicHistory.$inferSelect;
 export type PhotoEmbeddingRow = typeof photoEmbeddings.$inferSelect;
+export type LoginLogRow = typeof loginLogs.$inferSelect;
+export type LoginAttemptRow = typeof loginAttempts.$inferSelect;
+export type PhotoAiMetadataRow = typeof photoAiMetadata.$inferSelect;
