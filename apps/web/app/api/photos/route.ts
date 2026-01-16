@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth/session";
 import { photoStorage } from "@/lib/storage/photo-storage";
+import { photoAiMetadataStorage } from "@/lib/storage/photo-ai-metadata-storage";
 import type { PhotoCategory } from "@/types/storage";
 
 export const runtime = "nodejs";
@@ -49,6 +50,18 @@ export async function POST(req: Request) {
 
     // 创建照片记录（包括 EXIF 提取和文件保存）
     const photo = await photoStorage.create(session.userId, file);
+
+    // 自动创建 AI metadata pending 记录，用于后台自动标签
+    try {
+      await photoAiMetadataStorage.create({
+        photoId: photo.id,
+        userId: session.userId,
+      });
+      console.log(`[POST /api/photos] Created AI metadata pending record for photo ${photo.id}`);
+    } catch (aiError) {
+      // AI metadata 创建失败不影响照片上传
+      console.error(`[POST /api/photos] Failed to create AI metadata record:`, aiError);
+    }
 
     // 返回照片信息
     return NextResponse.json({
