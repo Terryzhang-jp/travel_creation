@@ -47,7 +47,8 @@ export function AIProcessPanel({ className }: AIProcessPanelProps) {
         throw new Error('Failed to fetch status');
       }
       const data = await response.json();
-      setStatus(data);
+      // API returns { stats: {...} }, extract the stats object
+      setStatus(data.stats || data);
       setLastUpdated(new Date());
       setError(null);
     } catch (err) {
@@ -79,11 +80,26 @@ export function AIProcessPanel({ className }: AIProcessPanelProps) {
     setError(null);
 
     try {
+      // First, get the list of photos that need processing
+      const photosResponse = await fetch('/api/photos');
+      if (!photosResponse.ok) {
+        throw new Error('Failed to fetch photos');
+      }
+      const photosData = await photosResponse.json();
+      const photoIds = (photosData.photos || photosData || []).map((p: { id: string }) => p.id);
+
+      if (photoIds.length === 0) {
+        setError('No photos found to process');
+        return;
+      }
+
+      // Now call batch-generate with the photo IDs
       const response = await fetch('/api/photos/ai-metadata/batch-generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({ photoIds }),
       });
 
       const data: BatchGenerateResponse = await response.json();

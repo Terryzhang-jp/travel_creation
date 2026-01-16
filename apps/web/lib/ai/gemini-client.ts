@@ -11,7 +11,7 @@ export interface GeminiConfig {
   timeout?: number;
 }
 
-const DEFAULT_MODEL = 'gemini-1.5-flash';
+const DEFAULT_MODEL = 'gemini-2.0-flash';
 const DEFAULT_TIMEOUT = 30000;
 
 /**
@@ -98,7 +98,7 @@ export class GeminiClient {
  * 创建默认客户端实例
  */
 export function createGeminiClient(): GeminiClient | null {
-  const apiKey = process.env.GOOGLE_GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GOOGLE_GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
 
   if (!apiKey) {
     console.warn('[Gemini] Missing API key');

@@ -8,6 +8,27 @@ import { createMiniMaxClient, type MiniMaxClient } from './minimax-client';
 import { createGeminiClient, type GeminiClient } from './gemini-client';
 import { PHOTO_TAGGING_PROMPT, parsePhotoAnalysisResponse, type PhotoAnalysisResult } from './prompts';
 
+/**
+ * 将相对 URL 转换为绝对 URL
+ * 服务端 fetch 和外部 API 都需要绝对 URL
+ */
+function resolveImageUrl(url: string): string {
+  // 如果已经是绝对 URL，直接返回
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+
+  // 获取 base URL
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL
+    || process.env.APP_URL
+    || 'http://localhost:3000';
+
+  // 确保 URL 以 / 开头
+  const path = url.startsWith('/') ? url : `/${url}`;
+
+  return `${baseUrl}${path}`;
+}
+
 export interface TaggingResult {
   success: boolean;
   data?: PhotoAnalysisResult;
@@ -38,10 +59,13 @@ export class PhotoTagger {
    * 分析单张照片
    */
   async analyzePhoto(imageUrl: string): Promise<TaggingResult> {
+    // 转换为绝对 URL
+    const absoluteUrl = resolveImageUrl(imageUrl);
+
     // 优先使用 MiniMax
     if (this.minimax) {
       try {
-        const response = await this.minimax.analyzeImage(imageUrl, PHOTO_TAGGING_PROMPT);
+        const response = await this.minimax.analyzeImage(absoluteUrl, PHOTO_TAGGING_PROMPT);
         const parsed = parsePhotoAnalysisResponse(response);
 
         if (parsed) {
@@ -62,7 +86,7 @@ export class PhotoTagger {
     // 降级到 Gemini
     if (this.gemini) {
       try {
-        const response = await this.gemini.analyzeImage(imageUrl, PHOTO_TAGGING_PROMPT);
+        const response = await this.gemini.analyzeImage(absoluteUrl, PHOTO_TAGGING_PROMPT);
         const parsed = parsePhotoAnalysisResponse(response);
 
         if (parsed) {
