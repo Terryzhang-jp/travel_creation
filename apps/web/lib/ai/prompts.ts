@@ -66,6 +66,23 @@ export interface PhotoAnalysisResult {
 }
 
 /**
+ * 验证标签结构是否有效
+ */
+function isValidPhotoTags(tags: unknown): tags is Partial<PhotoTags> {
+  if (!tags || typeof tags !== 'object') return false;
+  const tagObj = tags as Record<string, unknown>;
+
+  // 检查每个存在的字段是否为数组
+  const tagFields = ['scene', 'mood', 'lighting', 'color', 'subject', 'composition', 'usage', 'extra'];
+  for (const field of tagFields) {
+    if (field in tagObj && !Array.isArray(tagObj[field])) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
  * 验证并解析 AI 响应
  */
 export function parsePhotoAnalysisResponse(response: string): PhotoAnalysisResult | null {
@@ -81,6 +98,13 @@ export function parsePhotoAnalysisResponse(response: string): PhotoAnalysisResul
 
     // 验证结构
     if (!parsed.tags || !parsed.description) {
+      console.warn('[parsePhotoAnalysisResponse] Invalid structure: missing tags or description');
+      return null;
+    }
+
+    // 使用类型守卫验证 tags 结构
+    if (!isValidPhotoTags(parsed.tags)) {
+      console.warn('[parsePhotoAnalysisResponse] Invalid tags structure: tag fields must be arrays');
       return null;
     }
 
@@ -100,7 +124,8 @@ export function parsePhotoAnalysisResponse(response: string): PhotoAnalysisResul
       tags: { ...defaultTags, ...parsed.tags },
       description: String(parsed.description),
     };
-  } catch {
+  } catch (error) {
+    console.warn('[parsePhotoAnalysisResponse] Failed to parse response:', error);
     return null;
   }
 }
